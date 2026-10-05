@@ -12,5 +12,8 @@ test: macros/test.cc
 generateD0: macros/generateD0.cc
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
+reconstructD0: macros/reconstructD0.cc
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
+
 clean:
 	rm -f generateD0 test
