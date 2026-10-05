@@ -8,6 +8,9 @@ RPATH = -Wl,-rpath,$(PYTHIA)/lib -Wl,-rpath,$(FASTJET)/lib
 
 test: macros/test.cc
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
+	
+generateD0: macros/generateD0.cc
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
 clean:
-	rm -f test
+	rm -f generateD0 test
