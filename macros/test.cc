@@ -4,6 +4,7 @@
 
 int main() {
     Pythia8::Pythia p;
+    p.readString("HardQCD:all = on");
     p.readString("Beams:eCM = 200.");
     p.init();
     p.next();
