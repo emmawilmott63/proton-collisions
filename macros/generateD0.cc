@@ -1,22 +1,39 @@
 #include "Pythia8/Pythia.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TSystem.h"
 
 #include <vector>
 
 int main() {
+
+    // Make sure the output folder exists
+    gSystem->mkdir("data", true);
 
     // -----------------------------
     // Pythia setup
     // -----------------------------
     Pythia8::Pythia p;
 
-    p.readString("HardQCD:all = on");
+    // Charm-enriched sample: every event contains a c cbar hard
+    // process. This boosts the D0 yield enormously compared with
+    // HardQCD:all. Switch back to "HardQCD:all = on" if you want a
+    // realistic inclusive sample (you will then need many more events).
+    p.readString("HardQCD:hardccbar = on");
+
     p.readString("Beams:eCM = 200.");
     p.readString("PhaseSpace:pTHatMin = 5.");
     p.readString("PhaseSpace:pTHatMax = 10.");
 
-    p.init();
+    // Reproducible results
+    p.readString("Random:setSeed = on");
+    p.readString("Random:seed = 12345");
+
+    // Keep the console quiet
+    p.readString("Next:numberShowEvent = 0");
+
+    if (!p.init())
+        return 1;
 
     // -----------------------------
     // ROOT output
@@ -56,7 +73,7 @@ int main() {
     // -----------------------------
     // Event loop
     // -----------------------------
-    const int nEvents = 10000;
+    const int nEvents = 100000;
 
     for (event = 0; event < nEvents; ++event) {
 
@@ -94,7 +111,7 @@ int main() {
                 continue;
 
             // We are looking for the direct two-body decay
-            // D0  -> K- pi+
+            // D0    -> K- pi+
             // D0bar -> K+ pi-
             if (d2 != d1 + 1)
                 continue;
@@ -140,7 +157,7 @@ int main() {
             pz.push_back(static_cast<float>(p.event[i].pz()));
             energy.push_back(static_cast<float>(p.event[i].e()));
 
-            // Default: not from a reconstructed D0 -> K pi decay
+            // Default: not from a D0 -> K pi decay
             int parent = -1;
 
             // Check whether this particle is one of our
