@@ -9,8 +9,29 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <string>
 
-int main() {
+// Usage: ./reconstructD0 [inputFile] [tag]
+//   inputFile  default data/d0_charm.root
+//   tag        optional; default is taken from the file name
+//              (data/d0_inclusive.root -> "inclusive")
+
+int main(int argc, char* argv[]) {
+
+    const std::string inputName = (argc > 1) ? argv[1] : "data/d0_charm.root";
+
+    std::string tag;
+    if (argc > 2) {
+        tag = std::string("_") + argv[2];
+    } else {
+        // derive from the file name: strip folders, ".root" and "d0_"
+        std::string stem = inputName.substr(inputName.find_last_of('/') + 1);
+        if (stem.size() > 5 && stem.substr(stem.size() - 5) == ".root")
+            stem.resize(stem.size() - 5);
+        if (stem.rfind("d0_", 0) == 0)
+            stem = stem.substr(3);
+        tag = "_" + stem;
+    }
 
     // -----------------------------
     // Analysis cuts (tune these!)
@@ -26,7 +47,7 @@ int main() {
     // -----------------------------
     // Open input
     // -----------------------------
-    TFile input("data/d0.root", "READ");
+    TFile input(inputName.c_str(), "READ");
 
     TTree* tree = nullptr;
     input.GetObject("Particles", tree);
@@ -220,7 +241,7 @@ int main() {
     // -----------------------------
     // Save histograms
     // -----------------------------
-    TFile output("data/d0_reconstructed.root", "RECREATE");
+    TFile output(("data/d0_reconstructed" + tag + ".root").c_str(), "RECREATE");
 
     hMassOS.Write();
     hMassSS.Write();
@@ -240,7 +261,7 @@ int main() {
         TCanvas canvas("canvas", "D0 invariant mass", 800, 600);
         hMassOS.SetLineColor(kBlue);
         hMassOS.Draw();
-        canvas.SaveAs("plots/d0_mass_os.png");
+        canvas.SaveAs(("plots/d0_mass_os" + tag + ".png").c_str());
     }
 
     // Plot 2: summary (OS vs SS, and OS-SS vs truth)
@@ -276,7 +297,7 @@ int main() {
         leg2.AddEntry(&hMassTrue, "Truth-matched D^{0}", "l");
         leg2.Draw();
 
-        canvas2.SaveAs("plots/d0_mass_summary.png");
+        canvas2.SaveAs(("plots/d0_mass_summary" + tag + ".png").c_str());
     }
 
     delete hMassSub;

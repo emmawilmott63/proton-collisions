@@ -6,10 +6,15 @@ CXXFLAGS = -O2 -std=c++17 $(shell root-config --cflags) -I$(PYTHIA)/include -I$(
 LDFLAGS = $(shell root-config --libs) -L$(PYTHIA)/lib -lpythia8 -L$(FASTJET)/lib -lfastjet
 RPATH = -Wl,-rpath,$(PYTHIA)/lib -Wl,-rpath,$(FASTJET)/lib
 
+all: generateD0Charm generateD0Inclusive reconstructD0 sanityChecks
+
 test: macros/test.cc
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
-generateD0: macros/generateD0.cc
+generateD0Charm: macros/generateD0Charm.cc macros/generateCommon.h
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
+
+generateD0Inclusive: macros/generateD0Inclusive.cc macros/generateCommon.h
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
 reconstructD0: macros/reconstructD0.cc
@@ -19,4 +24,6 @@ sanityChecks: macros/sanityChecks.cc
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
 clean:
-	rm -f generateD0 reconstructD0 sanityChecks test
+	rm -f generateD0Charm generateD0Inclusive reconstructD0 sanityChecks test
+
+.PHONY: all clean
