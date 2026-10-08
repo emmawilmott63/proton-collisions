@@ -42,13 +42,16 @@ inline std::string getInputFile(int argc, char* argv[],
     return def;
 }
 
-// data/d0_inclusive.root -> "_inclusive"
+// data/d0_inclusive.root         -> "_inclusive"
+// data/candidates_charm.root     -> "_charm"
 inline std::string tagFromFile(const std::string& inputName) {
     std::string stem = inputName.substr(inputName.find_last_of('/') + 1);
     if (stem.size() > 5 && stem.substr(stem.size() - 5) == ".root")
         stem.resize(stem.size() - 5);
     if (stem.rfind("d0_", 0) == 0)
         stem = stem.substr(3);
+    if (stem.rfind("candidates_", 0) == 0)
+        stem = stem.substr(11);
     return "_" + stem;
 }
 
