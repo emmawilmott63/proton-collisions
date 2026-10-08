@@ -20,9 +20,6 @@ $(GEN): %: macros/%.cc macros/generateCommon.h
 $(ANA): %: macros/%.cc macros/analysisUtils.h
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
-test: macros/test.cc
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
-
 clean:
 	rm -f $(GEN) $(ANA) test
 
