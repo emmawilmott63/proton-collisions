@@ -237,7 +237,7 @@ int main(int argc, char* argv[]) {
     const double maxSub  = hMassSub->GetMaximum();
     const double maxTrue = hMassTrue.GetMaximum();
     const double scale =
-        (maxTrue > 0 && maxSub > 0) ? 0.5 * maxSub / maxTrue : 1.0;
+        (maxTrue > 0 && maxSub > 0) ? 1.0 * maxSub / maxTrue : 1.0;
 
     TH1F* hTrueDraw = static_cast<TH1F*>(hMassTrue.Clone("hTrueDraw"));
     hTrueDraw->SetDirectory(nullptr);
