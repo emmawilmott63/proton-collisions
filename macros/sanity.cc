@@ -18,12 +18,12 @@
 #include <string>
 #include <vector>
 
-// Step 1: basic look at the generated data.
+// sanity: basic look at the generated data.
 //   - jet pT
 //   - leading-jet pT
 //   - final-state particle IDs
 //
-// Usage: ./step1 [inputFile] [--tag=name]
+// Usage: ./sanity [inputFile] [--tag=name]
 //   inputFile  default data/d0_charm.root
 
 int main(int argc, char* argv[]) {
@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     const double nEv = std::max<double>(nEvents, 1.0);
 
-    std::cout << "\n===== Step 1 summary =====\n"
+    std::cout << "\n===== sanity summary =====\n"
               << "Input:                 " << inputName << "\n"
               << "Events read:           " << nEvents << "\n"
               << "Final-state particles: " << nParticlesTotal
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     // Save histograms
     // -----------------------------
-    TFile output(("data/step1" + tag + ".root").c_str(), "RECREATE");
+    TFile output(("data/sanity" + tag + ".root").c_str(), "RECREATE");
     hJetPt->Write();
     hLeadJetPt->Write();
     hPid->Write();
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
 
     // Combined canvas
     {
-        TCanvas c("c", "Step 1", 1800, 600);
+        TCanvas c("c", "sanity", 1800, 600);
         c.Divide(3, 1);
 
         c.cd(1);
@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
         gPad->SetBottomMargin(0.12);
         hPid->Draw("HIST");
 
-        c.SaveAs(("plots/step1" + tag + ".png").c_str());
+        c.SaveAs(("plots/sanity" + tag + ".png").c_str());
     }
 
     // Individual PNGs

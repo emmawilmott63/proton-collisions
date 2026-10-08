@@ -15,18 +15,18 @@
 #include <string>
 #include <vector>
 
-// Step 2: K pi invariant-mass spectra over 0 - 3 GeV/c^2.
+// mass: K pi invariant-mass spectra over 0 - 3 GeV/c^2.
 //   - K pi candidates (opposite signs)
 //   - K pi candidates (same signs)
 //   - K pi candidates (OS - SS), with the truth-matched D0 as a line
 //
-// Usage: ./step2 [inputFile] [--tag=name]
+// Usage: ./mass [inputFile] [--tag=name]
 //                [--min-daughter-pt=X] [--min-pair-pt=X] [--max-eta=X]
 //   inputFile  default data/d0_charm.root
 //
 // The cuts default to NONE so the whole spectrum (K*(892), D0, ...)
 // is visible. Tighten them from the command line to narrow things down,
-// e.g.  ./step2 --min-daughter-pt=1 --min-pair-pt=3 --max-eta=1
+// e.g.  ./mass --min-daughter-pt=1 --min-pair-pt=3 --max-eta=1
 
 int main(int argc, char* argv[]) {
 
@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     // Console summary
     // -----------------------------
-    std::cout << "\n===== Step 2 summary =====\n"
+    std::cout << "\n===== mass summary =====\n"
               << "Input:  " << inputName << "\n"
               << "Cuts:   daughter pT > " << minDaughterPt
               << ", pair pT > " << minPairPt
@@ -215,7 +215,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     // Save histograms
     // -----------------------------
-    TFile output(("data/step2" + tag + ".root").c_str(), "RECREATE");
+    TFile output(("data/mass" + tag + ".root").c_str(), "RECREATE");
     hMassOS.Write();
     hMassSS.Write();
     hMassSub->Write();
@@ -260,7 +260,7 @@ int main(int argc, char* argv[]) {
 
     // Combined canvas
     {
-        TCanvas c("c", "Step 2", 1800, 600);
+        TCanvas c("c", "mass", 1800, 600);
         c.Divide(3, 1);
 
         c.cd(1);
@@ -272,7 +272,7 @@ int main(int argc, char* argv[]) {
         c.cd(3);
         drawSub();
 
-        c.SaveAs(("plots/step2" + tag + ".png").c_str());
+        c.SaveAs(("plots/mass" + tag + ".png").c_str());
     }
 
     // Individual PNGs

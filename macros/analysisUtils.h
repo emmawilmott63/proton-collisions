@@ -1,7 +1,7 @@
 #ifndef ANALYSIS_UTILS_H
 #define ANALYSIS_UTILS_H
 
-// Tiny helpers shared by step1.cc, step2.cc and buildtree.cc.
+// Tiny helpers shared by sanity.cc, mass.cc, features.cc and buildtree.cc.
 //
 // Command-line convention:
 //   ./program [inputFile] [--key=value ...]

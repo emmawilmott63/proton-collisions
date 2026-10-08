@@ -14,12 +14,12 @@
 #include <string>
 #include <vector>
 
-// Step 3: look at the candidate tree before training.
+// features: look at the candidate tree before training.
 // For every feature, overlays signal (truth D0 -> K pi pairs) and
 // background (all other opposite-sign K pi pairs), each normalised to
 // unit area, and prints a simple separation score.
 //
-// Usage: ./step3 [candidateFile] [--tag=name]
+// Usage: ./features [candidateFile] [--tag=name]
 //   candidateFile  default data/candidates_charm.root
 
 namespace {
@@ -51,13 +51,35 @@ int main(int argc, char* argv[]) {
         {"dR",           "#DeltaR (K, #pi)",              50,  0.0,  4.0},
         {"openAngle",    "Opening angle [rad]",           50,  0.0,  3.2},
         {"ptBalance",    "|pT_{K} - pT_{#pi}| / (pT_{K} + pT_{#pi})", 50, 0.0, 1.0},
+        {"ptHard",       "Harder daughter p_{T} [GeV/c]", 50,  0.0, 10.0},
+        {"ptSoft",       "Softer daughter p_{T} [GeV/c]", 50,  0.0,  6.0},
+        {"ptSum",        "Scalar p_{T} sum (K + #pi) [GeV/c]", 50, 0.0, 15.0},
         {"pairPt",       "Pair p_{T} [GeV/c]",            50,  0.0, 15.0},
         {"pairEta",      "Pair #eta",                     40, -1.1,  1.1},
         {"cosThetaStar", "cos#theta* (K, pair rest frame)", 40, -1.0, 1.0},
-        {"jetPt",        "Nearest jet p_{T} [GeV/c]",     50,  0.0, 30.0},
+
+        // Jet association
+        {"sameJet",      "K and #pi in the same jet (0/1)", 2,  0.0,  2.0},
+        {"jetPt",        "Jet p_{T} [GeV/c]",             50,  0.0, 30.0},
         {"zJet",         "Pair p_{T} / jet p_{T}",        50,  0.0,  1.5},
-        {"dRJet",        "#DeltaR (pair, nearest jet)",   50,  0.0,  5.0},
-        {"isoRel",       "Isolation (charged pT in cone / pair pT)", 50, 0.0, 5.0},
+        {"dRJet",        "#DeltaR (pair, jet axis)",      50,  0.0,  5.0},
+        {"jetNConst",    "Jet constituents",              50,  0.0, 60.0},
+        {"jetMass",      "Jet mass [GeV/c^{2}]",          50,  0.0,  8.0},
+        {"jetEta",       "Jet #eta",                      40, -2.0,  2.0},
+
+        // Isolation
+        {"isoRel02",     "Charged isolation, R = 0.2",    50,  0.0,  5.0},
+        {"isoRel03",     "Charged isolation, R = 0.3",    50,  0.0,  5.0},
+        {"isoRel",       "Charged isolation, R = 0.4",    50,  0.0,  5.0},
+        {"isoRel06",     "Charged isolation, R = 0.6",    50,  0.0,  5.0},
+        {"isoNeutralRel","Neutral isolation, R = 0.4",    50,  0.0,  5.0},
+
+        // Event level
+        {"nCharged",     "Charged multiplicity (|#eta|<1)", 50, 0.0, 50.0},
+        {"nJets",        "Number of jets (|#eta|<1)",      8,  0.0,  8.0},
+        {"sphericityT",  "Transverse sphericity",         40,  0.0,  1.0},
+        {"thrustT",      "Transverse thrust",             40,  0.6,  1.0},
+
         {"mass",         "M_{K#pi} [GeV/c^{2}] (not a training variable)", 50, 1.6, 2.1}
     };
 
@@ -163,7 +185,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     // Console summary
     // -----------------------------
-    std::cout << "\n===== Step 3 summary =====\n"
+    std::cout << "\n===== features summary =====\n"
               << "Input:            " << inputName << "\n"
               << "Signal rows:      " << nSig << "\n"
               << "Background rows:  " << nBkg << "\n"
@@ -183,7 +205,7 @@ int main(int argc, char* argv[]) {
     gStyle->SetOptStat(0);
 
     const int nPads = static_cast<int>(features.size()) + 1;   // + legend
-    const int nCols = 5;
+    const int nCols = 6;
     const int nRows = (nPads + nCols - 1) / nCols;
 
     TCanvas canvas("canvas", "Features", 400 * nCols, 330 * nRows);

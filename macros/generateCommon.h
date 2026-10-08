@@ -2,7 +2,7 @@
 #define GENERATE_COMMON_H
 
 // Shared Pythia -> ROOT generation code.
-// Used by generateD0Charm.cc and generateD0Inclusive.cc so the two
+// Used by jets-charm.cc and jets-inc.cc so the two
 // samples are produced by IDENTICAL code and differ only in the
 // hard-process selection.
 

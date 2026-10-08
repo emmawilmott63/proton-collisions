@@ -7,7 +7,7 @@
 // Purpose: confirm the D0 -> K pi reconstruction works and that the
 // charm signal is visible.
 //
-// Usage: ./generateD0Charm [nEvents] [seed] [outFile]
+// Usage: ./jets-charm [nEvents] [seed] [outFile]
 //   defaults: 100000  12345  data/d0_charm.root
 
 int main(int argc, char* argv[]) {

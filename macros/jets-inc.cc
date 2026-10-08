@@ -7,7 +7,7 @@
 // appears at its natural, rare rate.
 // Purpose: realistic signal-to-background for evaluating the analysis.
 //
-// Usage: ./generateD0Inclusive [nEvents] [seed] [outFile]
+// Usage: ./jets-inc [nEvents] [seed] [outFile]
 //   defaults: 100000  54321  data/d0_inclusive.root
 // (different default seed from the charm sample, so they are independent)
 
