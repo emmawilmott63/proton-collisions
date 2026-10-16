@@ -20,7 +20,10 @@ $(GEN): %: macros/%.cc macros/generateCommon.h macros/analysisUtils.h
 $(ANA): %: macros/%.cc macros/analysisUtils.h
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
+reconstruct-d0: macros/reconstructD0.cc
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
+	
 clean:
-	rm -f $(GEN) $(ANA) test
+	rm -f $(GEN) $(ANA) test reconstruct-d0
 
 .PHONY: all clean
