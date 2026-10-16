@@ -1,7 +1,8 @@
 #ifndef ANALYSIS_UTILS_H
 #define ANALYSIS_UTILS_H
 
-// Tiny helpers shared by sanity.cc, mass.cc, features.cc and buildtree.cc.
+// Tiny helpers shared by sanity.cc, mass.cc, features.cc, buildtree.cc and
+// the generators (jets-charm.cc, jets-inc.cc).
 //
 // Command-line convention:
 //   ./program [inputFile] [--key=value ...]
@@ -38,6 +39,21 @@ inline std::string getInputFile(int argc, char* argv[],
         const std::string s = argv[i];
         if (s.rfind("--", 0) != 0)
             return s;
+    }
+    return def;
+}
+
+// index-th (0-based) argument that is not an option, or `def`.
+inline std::string getPositional(int argc, char* argv[], int index,
+                                 const std::string& def) {
+    int count = 0;
+    for (int i = 1; i < argc; ++i) {
+        const std::string s = argv[i];
+        if (s.rfind("--", 0) == 0)
+            continue;
+        if (count == index)
+            return s;
+        ++count;
     }
     return def;
 }

@@ -24,6 +24,9 @@
 //   --out=PATH            output file          [data/candidates<tag>.root]
 //   --tag=NAME            output tag           [derived from the input name]
 //   --min-daughter-pt=X   preselection         [0.5]   GeV/c
+//   --max-daughter-pt=X   preselection         [none]  GeV/c
+//   --min-pair-pt=X       preselection         [0]     GeV/c
+//   --max-pair-pt=X       preselection         [none]  GeV/c
 //   --max-eta=X           preselection         [1.0]
 //   --mass-min=X          preselection window  [1.6]   GeV/c^2
 //   --mass-max=X          preselection window  [2.1]   GeV/c^2
@@ -171,6 +174,9 @@ int main(int argc, char* argv[]) {
     // Options
     // -----------------------------
     const double minDaughterPt = getNumber(argc, argv, "min-daughter-pt", 0.5);
+    const double maxDaughterPt = getNumber(argc, argv, "max-daughter-pt", 1e9);
+    const double minPairPt     = getNumber(argc, argv, "min-pair-pt", 0.0);
+    const double maxPairPt     = getNumber(argc, argv, "max-pair-pt", 1e9);
     const double maxAbsEta     = getNumber(argc, argv, "max-eta", 1.0);
     const double massMin       = getNumber(argc, argv, "mass-min", 1.6);
     const double massMax       = getNumber(argc, argv, "mass-max", 2.1);
@@ -411,7 +417,8 @@ int main(int argc, char* argv[]) {
 
             const Track& K = trk[i];
 
-            if (K.pt < minDaughterPt || std::abs(K.eta) > maxAbsEta)
+            if (K.pt < minDaughterPt || K.pt > maxDaughterPt ||
+                std::abs(K.eta) > maxAbsEta)
                 continue;
 
             for (size_t j = 0; j < n; ++j) {
@@ -425,7 +432,8 @@ int main(int argc, char* argv[]) {
 
                 const Track& P = trk[j];
 
-                if (P.pt < minDaughterPt || std::abs(P.eta) > maxAbsEta)
+                if (P.pt < minDaughterPt || P.pt > maxDaughterPt ||
+                    std::abs(P.eta) > maxAbsEta)
                     continue;
 
                 // Pair kinematics
@@ -441,6 +449,10 @@ int main(int argc, char* argv[]) {
 
                 const double mass = std::sqrt(m2);
                 if (mass < massMin || mass > massMax)
+                    continue;
+
+                const double pairPtSel = std::hypot(sumPx, sumPy);
+                if (pairPtSel < minPairPt || pairPtSel > maxPairPt)
                     continue;
 
                 // Truth label: both from the same D0 -> K pi decay
@@ -633,6 +645,11 @@ int main(int argc, char* argv[]) {
               << "Output:             " << outName << "\n"
               << "Events read:        " << nEvents << "\n"
               << "Preselection:       daughter pT > " << minDaughterPt
+              << (maxDaughterPt < 1e8
+                      ? ", < " + std::to_string(maxDaughterPt) : std::string())
+              << ", pair pT > " << minPairPt
+              << (maxPairPt < 1e8
+                      ? ", < " + std::to_string(maxPairPt) : std::string())
               << ", |eta| < " << maxAbsEta
               << ", " << massMin << " < mass < " << massMax << "\n"
               << "Smearing:           pT " << smearPt

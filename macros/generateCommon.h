@@ -24,7 +24,9 @@ enum class SampleMode {
 inline int generateSample(SampleMode mode,
                           int nEvents,
                           int seed,
-                          const std::string& outName) {
+                          const std::string& outName,
+                          double pTHatMin = 5.0,
+                          double pTHatMax = 10.0) {
 
     const std::string modeName =
         (mode == SampleMode::Charm) ? "charm" : "inclusive";
@@ -46,8 +48,8 @@ inline int generateSample(SampleMode mode,
     }
 
     p.readString("Beams:eCM = 200.");
-    p.readString("PhaseSpace:pTHatMin = 5.");
-    p.readString("PhaseSpace:pTHatMax = 10.");
+    p.readString("PhaseSpace:pTHatMin = " + std::to_string(pTHatMin));
+    p.readString("PhaseSpace:pTHatMax = " + std::to_string(pTHatMax));
 
     p.readString("Random:setSeed = on");
     p.readString("Random:seed = " + std::to_string(seed));
@@ -246,6 +248,8 @@ inline int generateSample(SampleMode mode,
     std::cout << "\n===== Generation summary =====\n"
               << "Sample:                     " << modeName << "\n"
               << "Seed:                       " << seed << "\n"
+              << "pTHat range:                " << pTHatMin << " - "
+              << pTHatMax << " GeV/c\n"
               << "Events generated:           " << nGenerated << "\n"
               << "Cross section (sigmaGen):   " << p.info.sigmaGen()
               << " mb  (+/- " << p.info.sigmaErr() << ")\n"

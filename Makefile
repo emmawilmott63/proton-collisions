@@ -14,7 +14,7 @@ ANA = sanity mass buildtree features
 
 all: $(GEN) $(ANA)
 
-$(GEN): %: macros/%.cc macros/generateCommon.h
+$(GEN): %: macros/%.cc macros/generateCommon.h macros/analysisUtils.h
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
 
 $(ANA): %: macros/%.cc macros/analysisUtils.h
