@@ -42,6 +42,11 @@
 //   --seed=N              random seed for the smearing       [12345]
 //   --pt-edges=a,b,c,...  also make OS - SS plots in bins of pair pT,
 //                         e.g. --pt-edges=0,1,2,3,5,8
+//   --zoom-min=X          lower edge of the zoomed plots     [1.0]  GeV/c^2
+//   --zoom-max=X          upper edge of the zoomed plots     [2.2]  GeV/c^2
+//
+// Every K pi candidate plot is made twice: full range (0 - 3) and zoomed
+// (files with _zoom in the name).
 //
 // The cuts default to NONE so the whole spectrum is visible. Tighten them
 // to narrow things down, e.g.
@@ -73,10 +78,16 @@ const std::vector<Resonance> resonances = {
 void drawResonanceLines() {
 
     gPad->Update();
+    const double x1 = gPad->GetUxmin();
+    const double x2 = gPad->GetUxmax();
     const double y1 = gPad->GetUymin();
     const double y2 = gPad->GetUymax();
 
     for (const auto& r : resonances) {
+
+        // skip lines that fall outside the visible x range (zoomed plots)
+        if (r.mass < x1 || r.mass > x2)
+            continue;
 
         TLine* line = new TLine(r.mass, y1, r.mass, y2);
         line->SetLineStyle(2);
@@ -107,6 +118,23 @@ std::vector<double> parseList(const std::string& s) {
 double truthScale(double maxSub, double maxTrue) {
     return (maxTrue > 0 && maxSub > 0 && maxSub < maxTrue)
                ? maxSub / maxTrue : 1.0;
+}
+
+// Legend entry for the truth D0 line. The scale factor is only shown when
+// the line has actually been rescaled.
+TString truthLabel(double scale) {
+    return (std::abs(scale - 1.0) < 1e-9)
+               ? TString("D^{0} truth")
+               : TString::Format("D^{0} truth (#times%.2g)", scale);
+}
+
+// Small, borderless, transparent legend in the top-right corner.
+TLegend* makeLegend() {
+    TLegend* leg = new TLegend(0.62, 0.80, 0.89, 0.89);
+    leg->SetTextSize(0.035);
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    return leg;
 }
 
 }  // namespace
@@ -149,6 +177,9 @@ int main(int argc, char* argv[]) {
     const double massMin = 0.0;
     const double massMax = 3.0;
     const int    nBinsPt = 150;   // 20 MeV/c^2 per bin, for the pair-pT plots
+
+    const double zoomMin = getNumber(argc, argv, "zoom-min", 1.0);
+    const double zoomMax = getNumber(argc, argv, "zoom-max", 2.2);
 
     gSystem->mkdir("data", true);
     gSystem->mkdir("plots", true);
@@ -411,65 +442,89 @@ int main(int argc, char* argv[]) {
     hMassSS.SetLineColor(kRed + 1);
     hMassSub->SetLineColor(kBlack);
 
-    const double maxSub  = hMassSub->GetMaximum();
-    const double maxTrue = hMassTrue.GetMaximum();
-    const double scale   = truthScale(maxSub, maxTrue);
+    // Draws the K pi candidate plots (OS, SS, OS - SS with the truth D0),
+    // either over the full range or zoomed in. Works on clones so the
+    // saved histograms are untouched. `suffix` is "" or "_zoom".
+    auto makeCandidatePlots = [&](const std::string& suffix,
+                                  double xlo, double xhi, bool zoom) {
 
-    TH1F* hTrueDraw = static_cast<TH1F*>(hMassTrue.Clone("hTrueDraw"));
-    hTrueDraw->SetDirectory(nullptr);
-    hTrueDraw->Scale(scale);
-    hTrueDraw->SetLineColor(kGreen + 2);
-    hTrueDraw->SetLineWidth(2);
+        TH1F* os  = static_cast<TH1F*>(hMassOS.Clone(("os" + suffix).c_str()));
+        TH1F* ss  = static_cast<TH1F*>(hMassSS.Clone(("ss" + suffix).c_str()));
+        TH1F* sub = static_cast<TH1F*>(hMassSub->Clone(("sub" + suffix).c_str()));
+        TH1F* tru = static_cast<TH1F*>(hMassTrue.Clone(("tru" + suffix).c_str()));
 
-    hMassSub->SetMaximum(1.2 * maxSub);
+        for (TH1F* h : {os, ss, sub, tru}) {
+            h->SetDirectory(nullptr);
+            if (zoom)
+                h->GetXaxis()->SetRangeUser(xlo, xhi);
+        }
 
-    auto drawSub = [&]() {
-        hMassSub->Draw("HIST");
-        hTrueDraw->Draw("HIST SAME");
-        drawResonanceLines();
+        // The truth D0 is drawn as a line; GetMaximum() only looks at the
+        // visible range, so the zoomed plots rescale to what is shown.
+        const double mSub  = sub->GetMaximum();
+        const double mTrue = tru->GetMaximum();
+        const double scale = truthScale(mSub, mTrue);
 
-        TLegend* leg = new TLegend(0.50, 0.75, 0.88, 0.88);
-        leg->AddEntry(hMassSub, "OS - SS", "l");
-        leg->AddEntry(hTrueDraw,
-                      Form("D^{0} truth (#times%.2g)", scale), "l");
-        leg->Draw();
+        tru->Scale(scale);
+        tru->SetLineColor(kGreen + 2);
+        tru->SetLineWidth(2);
+        sub->SetMaximum(1.2 * mSub);
+
+        auto drawSubPad = [&]() {
+            sub->Draw("HIST");
+            tru->Draw("HIST SAME");
+            drawResonanceLines();
+
+            TLegend* leg = makeLegend();
+            leg->AddEntry(sub, "OS - SS", "l");
+            leg->AddEntry(tru, truthLabel(scale), "l");
+            leg->Draw();
+        };
+
+        // Combined canvas
+        {
+            TCanvas c(("c" + suffix).c_str(), "mass", 1800, 600);
+            c.Divide(3, 1);
+
+            c.cd(1);
+            os->Draw("HIST");
+            drawResonanceLines();
+
+            c.cd(2);
+            ss->Draw("HIST");
+            drawResonanceLines();
+
+            c.cd(3);
+            drawSubPad();
+
+            c.SaveAs(("plots/mass" + suffix + tag + ".png").c_str());
+        }
+
+        // Individual PNGs
+        {
+            TCanvas c1(("c1" + suffix).c_str(), "OS", 800, 600);
+            os->Draw("HIST");
+            drawResonanceLines();
+            c1.SaveAs(("plots/kpi_os" + suffix + tag + ".png").c_str());
+
+            TCanvas c2(("c2" + suffix).c_str(), "SS", 800, 600);
+            ss->Draw("HIST");
+            drawResonanceLines();
+            c2.SaveAs(("plots/kpi_ss" + suffix + tag + ".png").c_str());
+
+            TCanvas c3(("c3" + suffix).c_str(), "OS - SS", 800, 600);
+            drawSubPad();
+            c3.SaveAs(("plots/kpi_os_minus_ss" + suffix + tag + ".png").c_str());
+        }
+
+        delete os;
+        delete ss;
+        delete sub;
+        delete tru;
     };
 
-    // Combined canvas
-    {
-        TCanvas c("c", "mass", 1800, 600);
-        c.Divide(3, 1);
-
-        c.cd(1);
-        hMassOS.Draw("HIST");
-        drawResonanceLines();
-
-        c.cd(2);
-        hMassSS.Draw("HIST");
-        drawResonanceLines();
-
-        c.cd(3);
-        drawSub();
-
-        c.SaveAs(("plots/mass" + tag + ".png").c_str());
-    }
-
-    // Individual PNGs
-    {
-        TCanvas c1("c1", "OS", 800, 600);
-        hMassOS.Draw("HIST");
-        drawResonanceLines();
-        c1.SaveAs(("plots/kpi_os" + tag + ".png").c_str());
-
-        TCanvas c2("c2", "SS", 800, 600);
-        hMassSS.Draw("HIST");
-        drawResonanceLines();
-        c2.SaveAs(("plots/kpi_ss" + tag + ".png").c_str());
-
-        TCanvas c3("c3", "OS - SS", 800, 600);
-        drawSub();
-        c3.SaveAs(("plots/kpi_os_minus_ss" + tag + ".png").c_str());
-    }
+    makeCandidatePlots("", massMin, massMax, false);
+    makeCandidatePlots("_zoom", zoomMin, zoomMax, true);
 
     // Pair-pT-binned OS - SS
     if (nPtBins > 0) {
@@ -505,8 +560,8 @@ int main(int argc, char* argv[]) {
             t->Draw("HIST SAME");
             drawResonanceLines();
 
-            TLegend* leg = new TLegend(0.45, 0.78, 0.88, 0.88);
-            leg->AddEntry(t, Form("D^{0} truth (#times%.2g)", s), "l");
+            TLegend* leg = makeLegend();
+            leg->AddEntry(t, truthLabel(s), "l");
             leg->Draw();
         }
 
@@ -515,7 +570,6 @@ int main(int argc, char* argv[]) {
         for (TH1F* t : truthDraw) delete t;
     }
 
-    delete hTrueDraw;
     delete hMassSub;
     for (TH1F* h : binOS)   delete h;
     for (TH1F* h : binSS)   delete h;
