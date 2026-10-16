@@ -27,7 +27,7 @@
 // Dashed vertical lines mark K*(892), K*(1430) and the D0.
 //
 // Usage: ./mass [inputFile] [--option=value ...]
-//   inputFile  default data/d0_charm.root
+//   inputFile  default data/d0_inclusive.root
 //
 // Options (defaults in brackets):
 //   --tag=NAME            output tag            [from the input file name]
@@ -114,7 +114,7 @@ double truthScale(double maxSub, double maxTrue) {
 int main(int argc, char* argv[]) {
 
     const std::string inputName =
-        getInputFile(argc, argv, "data/d0_charm.root");
+        getInputFile(argc, argv, "data/d0_inclusive.root");
     const std::string tag = getTag(argc, argv, inputName);
 
     // -----------------------------

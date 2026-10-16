@@ -24,12 +24,12 @@
 //   - final-state particle IDs
 //
 // Usage: ./sanity [inputFile] [--tag=name]
-//   inputFile  default data/d0_charm.root
+//   inputFile  default data/d0_inclusive.root
 
 int main(int argc, char* argv[]) {
 
     const std::string inputName =
-        getInputFile(argc, argv, "data/d0_charm.root");
+        getInputFile(argc, argv, "data/d0_inclusive.root");
     const std::string tag = getTag(argc, argv, inputName);
 
     // -----------------------------

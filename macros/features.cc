@@ -20,7 +20,7 @@
 // unit area, and prints a simple separation score.
 //
 // Usage: ./features [candidateFile] [--tag=name]
-//   candidateFile  default data/candidates_charm.root
+//   candidateFile  default data/candidates_inclusive.root
 
 namespace {
 
@@ -36,7 +36,7 @@ struct Feature {
 int main(int argc, char* argv[]) {
 
     const std::string inputName =
-        getInputFile(argc, argv, "data/candidates_charm.root");
+        getInputFile(argc, argv, "data/candidates_inclusive.root");
     const std::string tag = getTag(argc, argv, inputName);
 
     gSystem->mkdir("plots", true);

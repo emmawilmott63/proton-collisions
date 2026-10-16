@@ -18,7 +18,7 @@
 // One row per opposite-sign K pi pair that passes the preselection.
 //
 // Usage: ./buildtree [inputFile] [--option=value ...]
-//   inputFile        default data/d0_charm.root
+//   inputFile        default data/d0_inclusive.root
 //
 // Options (defaults in brackets):
 //   --out=PATH            output file          [data/candidates<tag>.root]
@@ -164,7 +164,7 @@ void transverseShapes(const std::vector<double>& vpx,
 int main(int argc, char* argv[]) {
 
     const std::string inputName =
-        getInputFile(argc, argv, "data/d0_charm.root");
+        getInputFile(argc, argv, "data/d0_inclusive.root");
     const std::string tag = getTag(argc, argv, inputName);
 
     const std::string outName =
