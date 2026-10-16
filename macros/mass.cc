@@ -178,7 +178,7 @@ int main(int argc, char* argv[]) {
     const double massMax = 3.0;
     const int    nBinsPt = 150;   // 20 MeV/c^2 per bin, for the pair-pT plots
 
-    const double zoomMin = getNumber(argc, argv, "zoom-min", 1.0);
+    const double zoomMin = getNumber(argc, argv, "zoom-min", 1.6);
     const double zoomMax = getNumber(argc, argv, "zoom-max", 2.2);
 
     gSystem->mkdir("data", true);
