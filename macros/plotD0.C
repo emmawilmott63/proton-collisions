@@ -176,11 +176,62 @@ void plotD0(const char* inputName = "data/d0_reco_5_100.root",
     cSS->SaveAs((out + "/kpi_ss_recon.png").c_str());
     cSS->SaveAs((out + "/kpi_ss_recon.pdf").c_str());
 
+
+    // 5. Truth-matched signal versus OS candidates not truth-matched.
+    // These histograms are produced by the updated reconstructD0.cc.
+    TH1* hTruth = dynamic_cast<TH1*>(input->Get("hMass_truth"));
+    TH1* hComb = dynamic_cast<TH1*>(input->Get("hMass_OS_combinatorial"));
+    TH1* hTruthW = dynamic_cast<TH1*>(input->Get("hMass_truth_weighted"));
+    TH1* hCombW = dynamic_cast<TH1*>(input->Get("hMass_OS_combinatorial_weighted"));
+
+    if (hTruth && hComb && hTruthW && hCombW) {
+        TH1* hTruthDisplay = dynamic_cast<TH1*>(hTruth->Clone("hTruthDisplay"));
+        TH1* hCombDisplay = dynamic_cast<TH1*>(hComb->Clone("hCombDisplay"));
+        TH1* hTruthWDisplay = dynamic_cast<TH1*>(hTruthW->Clone("hTruthWDisplay"));
+        TH1* hCombWDisplay = dynamic_cast<TH1*>(hCombW->Clone("hCombWDisplay"));
+        for (TH1* h : {hTruthDisplay, hTruthWDisplay}) {
+            h->SetLineColor(kBlue + 1);
+            h->SetLineWidth(2);
+        }
+        for (TH1* h : {hCombDisplay, hCombWDisplay}) {
+            h->SetLineColor(kRed + 1);
+            h->SetLineWidth(2);
+        }
+
+        TCanvas* cTruth = new TCanvas("cTruthMatchedRecon", "Truth matched comparison", 1300, 550);
+        cTruth->Divide(2, 1);
+        cTruth->cd(1);
+        gPad->SetLeftMargin(0.13);
+        hTruthDisplay->SetTitle("Unweighted OS candidates;M_{K#pi} (GeV/c^{2});Candidates");
+        hTruthDisplay->Draw("HIST");
+        hCombDisplay->Draw("HIST SAME");
+        TLegend* legTruth = new TLegend(0.54, 0.76, 0.88, 0.88);
+        legTruth->AddEntry(hTruthDisplay, "Truth-matched D^{0}", "l");
+        legTruth->AddEntry(hCombDisplay, "OS not truth-matched", "l");
+        legTruth->Draw();
+
+        cTruth->cd(2);
+        gPad->SetLeftMargin(0.13);
+        hTruthWDisplay->SetTitle("Weighted OS candidates;M_{K#pi} (GeV/c^{2});Weighted yield (mb)");
+        hTruthWDisplay->Draw("HIST");
+        hCombWDisplay->Draw("HIST SAME");
+        TLegend* legTruthW = new TLegend(0.54, 0.76, 0.88, 0.88);
+        legTruthW->AddEntry(hTruthWDisplay, "Truth-matched D^{0}", "l");
+        legTruthW->AddEntry(hCombWDisplay, "OS not truth-matched", "l");
+        legTruthW->Draw();
+
+        cTruth->SaveAs((out + "/mass_truth_vs_combinatorial.png").c_str());
+        cTruth->SaveAs((out + "/mass_truth_vs_combinatorial.pdf").c_str());
+    } else {
+        std::cerr << "Truth-matching histograms not found. Re-run reconstructD0 "
+                     "with the updated source before plotting them." << std::endl;
+    }
+
     std::cout << "\nSaved plots to " << outputDir << "/:" << std::endl
               << "  mass_weighted-recon.png" << std::endl
               << "  mass_unweighted-recon.png" << std::endl
               << "  kpi_os_recon.png" << std::endl
-              << "  kpi_ss_recon.png" << std::endl;
+              << "  kpi_ss_recon.png" << std::endl\n              << "  mass_truth_vs_combinatorial.png (if truth histograms exist)" << std::endl;
     std::cout << "Note: OS - SS is a simple bin-by-bin subtraction; "
                  "background normalization may be needed for physics interpretation."
               << std::endl;
