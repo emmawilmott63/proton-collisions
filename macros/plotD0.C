@@ -8,6 +8,12 @@
 //
 // Expected histograms: hMass_OS, hMass_SS, hMass_OS_weighted,
 //                      hMass_SS_weighted
+//
+// Outputs:
+//   mass_weighted-recon.png       weighted OS, SS, and OS-SS
+//   mass_unweighted-recon.png     unweighted OS, SS, and OS-SS
+//   kpi_os_recon.png              OS candidates, weighted/unweighted side by side
+//   kpi_ss_recon.png              SS candidates, weighted/unweighted side by side
 
 #include <iostream>
 #include <string>
@@ -59,93 +65,125 @@ void plotD0(const char* inputName = "data/d0_reco_5_100.root",
         return;
     }
 
-    // Consistent colors: opposite-sign blue, same-sign red.
-    for (TH1* h : {hOS, hOSw}) {
+    // Make independent clones for display and subtraction, leaving input histograms untouched.
+    TH1* hOSDisplay = dynamic_cast<TH1*>(hOS->Clone("hOSDisplay"));
+    TH1* hSSDisplay = dynamic_cast<TH1*>(hSS->Clone("hSSDisplay"));
+    TH1* hOSwDisplay = dynamic_cast<TH1*>(hOSw->Clone("hOSwDisplay"));
+    TH1* hSSwDisplay = dynamic_cast<TH1*>(hSSw->Clone("hSSwDisplay"));
+    TH1* hDiff = dynamic_cast<TH1*>(hOS->Clone("hOSMinusSS"));
+    TH1* hDiffW = dynamic_cast<TH1*>(hOSw->Clone("hOSMinusSSWeighted"));
+    hDiff->SetDirectory(nullptr);
+    hDiffW->SetDirectory(nullptr);
+    hOSDisplay->SetDirectory(nullptr);
+    hSSDisplay->SetDirectory(nullptr);
+    hOSwDisplay->SetDirectory(nullptr);
+    hSSwDisplay->SetDirectory(nullptr);
+
+    // Subtract same-sign from opposite-sign, bin by bin.
+    // This is a useful control plot, but is not automatically a calibrated
+    // combinatorial-background subtraction: OS/SS normalization may be needed.
+    hDiff->Add(hSS, -1.0);
+    hDiffW->Add(hSSw, -1.0);
+
+    for (TH1* h : {hOSDisplay, hOSwDisplay}) {
         h->SetLineColor(kBlue + 1);
         h->SetLineWidth(2);
         h->SetMarkerColor(kBlue + 1);
         h->SetMarkerStyle(20);
         h->SetMarkerSize(0.55);
     }
-    for (TH1* h : {hSS, hSSw}) {
+    for (TH1* h : {hSSDisplay, hSSwDisplay}) {
         h->SetLineColor(kRed + 1);
         h->SetLineWidth(2);
         h->SetMarkerColor(kRed + 1);
         h->SetMarkerStyle(24);
         h->SetMarkerSize(0.55);
     }
+    hDiff->SetLineColor(kGreen + 2);
+    hDiff->SetLineWidth(2);
+    hDiffW->SetLineColor(kGreen + 2);
+    hDiffW->SetLineWidth(2);
 
     const std::string out(outputDir);
 
-    // 1. Unweighted OS and SS comparison.
-    TCanvas* c1 = new TCanvas("cMassOSSS", "Unweighted OS vs SS", 900, 700);
-    c1->SetLeftMargin(0.13);
-    c1->SetBottomMargin(0.12);
-    hOS->SetTitle("D^{0} candidate invariant mass;M_{K#pi} (GeV/c^{2});Candidates");
-    hOS->Draw("E");
-    hSS->Draw("E SAME");
-    TLegend* leg1 = new TLegend(0.59, 0.76, 0.87, 0.87);
-    leg1->AddEntry(hOS, "Opposite-sign K#pi", "lep");
-    leg1->AddEntry(hSS, "Same-sign K#pi", "lep");
-    leg1->Draw();
-    TLatex label1;
-    label1.SetNDC();
-    label1.SetTextSize(0.032);
-    label1.DrawLatex(0.14, 0.94, "Unweighted candidates");
-    c1->SaveAs((out + "/mass_os_vs_ss.png").c_str());
-    c1->SaveAs((out + "/mass_os_vs_ss.pdf").c_str());
+    // 1. Weighted mass plot: OS and SS on the left; OS - SS on the right.
+    TCanvas* cWeighted = new TCanvas("cMassWeightedRecon", "Weighted mass reconstruction", 1300, 550);
+    cWeighted->Divide(2, 1);
 
-    // 2. Cross-section-weighted OS and SS comparison.
-    TCanvas* c2 = new TCanvas("cMassWeightedOSSS", "Weighted OS vs SS", 900, 700);
-    c2->SetLeftMargin(0.13);
-    c2->SetBottomMargin(0.12);
-    hOSw->SetTitle("Weighted D^{0} candidate invariant mass;M_{K#pi} (GeV/c^{2});Weighted yield (mb)");
-    hOSw->Draw("HIST");
-    hSSw->Draw("HIST SAME");
-    TLegend* leg2 = new TLegend(0.59, 0.76, 0.87, 0.87);
-    leg2->AddEntry(hOSw, "Opposite-sign K#pi", "l");
-    leg2->AddEntry(hSSw, "Same-sign K#pi", "l");
-    leg2->Draw();
-    TLatex label2;
-    label2.SetNDC();
-    label2.SetTextSize(0.032);
-    label2.DrawLatex(0.14, 0.94, "Cross-section weighted");
-    c2->SaveAs((out + "/mass_weighted_os_vs_ss.png").c_str());
-    c2->SaveAs((out + "/mass_weighted_os_vs_ss.pdf").c_str());
+    cWeighted->cd(1);
+    gPad->SetLeftMargin(0.13);
+    hOSwDisplay->SetTitle("Weighted K#pi candidates;M_{K#pi} (GeV/c^{2});Weighted yield (mb)");
+    hOSwDisplay->Draw("HIST");
+    hSSwDisplay->Draw("HIST SAME");
+    TLegend* legW = new TLegend(0.58, 0.76, 0.87, 0.88);
+    legW->AddEntry(hOSwDisplay, "Opposite-sign (OS)", "l");
+    legW->AddEntry(hSSwDisplay, "Same-sign (SS)", "l");
+    legW->Draw();
 
-    // 3. OS distributions side by side; scales/units are intentionally separate.
-    TCanvas* c3 = new TCanvas("cMassOSWeightedComparison", "OS weighted comparison", 1100, 500);
-    c3->Divide(2, 1);
-    c3->cd(1);
+    cWeighted->cd(2);
     gPad->SetLeftMargin(0.13);
-    hOS->SetTitle("Opposite-sign (unweighted);M_{K#pi} (GeV/c^{2});Candidates");
-    hOS->Draw("HIST");
-    c3->cd(2);
-    gPad->SetLeftMargin(0.13);
-    hOSw->SetTitle("Opposite-sign (weighted);M_{K#pi} (GeV/c^{2});Weighted yield (mb)");
-    hOSw->Draw("HIST");
-    c3->SaveAs((out + "/mass_unweighted_vs_weighted.png").c_str());
-    c3->SaveAs((out + "/mass_unweighted_vs_weighted.pdf").c_str());
+    hDiffW->SetTitle("Weighted OS - SS;M_{K#pi} (GeV/c^{2});OS - SS (mb)");
+    hDiffW->Draw("HIST");
+    cWeighted->SaveAs((out + "/mass_weighted-recon.png").c_str());
+    cWeighted->SaveAs((out + "/mass_weighted-recon.pdf").c_str());
 
-    // 4. SS distributions side by side.
-    TCanvas* c4 = new TCanvas("cMassSSWeightedComparison", "SS weighted comparison", 1100, 500);
-    c4->Divide(2, 1);
-    c4->cd(1);
+    // 2. Unweighted mass plot: OS and SS on the left; OS - SS on the right.
+    TCanvas* cUnweighted = new TCanvas("cMassUnweightedRecon", "Unweighted mass reconstruction", 1300, 550);
+    cUnweighted->Divide(2, 1);
+
+    cUnweighted->cd(1);
     gPad->SetLeftMargin(0.13);
-    hSS->SetTitle("Same-sign (unweighted);M_{K#pi} (GeV/c^{2});Candidates");
-    hSS->Draw("HIST");
-    c4->cd(2);
+    hOSDisplay->SetTitle("K#pi candidates;M_{K#pi} (GeV/c^{2});Candidates");
+    hOSDisplay->Draw("E");
+    hSSDisplay->Draw("E SAME");
+    TLegend* legU = new TLegend(0.58, 0.76, 0.87, 0.88);
+    legU->AddEntry(hOSDisplay, "Opposite-sign (OS)", "lep");
+    legU->AddEntry(hSSDisplay, "Same-sign (SS)", "lep");
+    legU->Draw();
+
+    cUnweighted->cd(2);
     gPad->SetLeftMargin(0.13);
-    hSSw->SetTitle("Same-sign (weighted);M_{K#pi} (GeV/c^{2});Weighted yield (mb)");
-    hSSw->Draw("HIST");
-    c4->SaveAs((out + "/mass_ss_unweighted_vs_weighted.png").c_str());
-    c4->SaveAs((out + "/mass_ss_unweighted_vs_weighted.pdf").c_str());
+    hDiff->SetTitle("Unweighted OS - SS;M_{K#pi} (GeV/c^{2});OS - SS candidates");
+    hDiff->Draw("HIST");
+    cUnweighted->SaveAs((out + "/mass_unweighted-recon.png").c_str());
+    cUnweighted->SaveAs((out + "/mass_unweighted-recon.pdf").c_str());
+
+    // 3. OS candidates, weighted and unweighted side by side.
+    TCanvas* cOS = new TCanvas("cKpiOSRecon", "OS candidates", 1200, 520);
+    cOS->Divide(2, 1);
+    cOS->cd(1);
+    gPad->SetLeftMargin(0.13);
+    hOSDisplay->SetTitle("Opposite-sign candidates (unweighted);M_{K#pi} (GeV/c^{2});Candidates");
+    hOSDisplay->Draw("HIST");
+    cOS->cd(2);
+    gPad->SetLeftMargin(0.13);
+    hOSwDisplay->SetTitle("Opposite-sign candidates (weighted);M_{K#pi} (GeV/c^{2});Weighted yield (mb)");
+    hOSwDisplay->Draw("HIST");
+    cOS->SaveAs((out + "/kpi_os_recon.png").c_str());
+    cOS->SaveAs((out + "/kpi_os_recon.pdf").c_str());
+
+    // 4. SS candidates, weighted and unweighted side by side.
+    TCanvas* cSS = new TCanvas("cKpiSSRecon", "SS candidates", 1200, 520);
+    cSS->Divide(2, 1);
+    cSS->cd(1);
+    gPad->SetLeftMargin(0.13);
+    hSSDisplay->SetTitle("Same-sign candidates (unweighted);M_{K#pi} (GeV/c^{2});Candidates");
+    hSSDisplay->Draw("HIST");
+    cSS->cd(2);
+    gPad->SetLeftMargin(0.13);
+    hSSwDisplay->SetTitle("Same-sign candidates (weighted);M_{K#pi} (GeV/c^{2});Weighted yield (mb)");
+    hSSwDisplay->Draw("HIST");
+    cSS->SaveAs((out + "/kpi_ss_recon.png").c_str());
+    cSS->SaveAs((out + "/kpi_ss_recon.pdf").c_str());
 
     std::cout << "\nSaved plots to " << outputDir << "/:" << std::endl
-              << "  mass_os_vs_ss.png" << std::endl
-              << "  mass_weighted_os_vs_ss.png" << std::endl
-              << "  mass_unweighted_vs_weighted.png" << std::endl
-              << "  mass_ss_unweighted_vs_weighted.png" << std::endl;
+              << "  mass_weighted-recon.png" << std::endl
+              << "  mass_unweighted-recon.png" << std::endl
+              << "  kpi_os_recon.png" << std::endl
+              << "  kpi_ss_recon.png" << std::endl;
+    std::cout << "Note: OS - SS is a simple bin-by-bin subtraction; "
+                 "background normalization may be needed for physics interpretation."
+              << std::endl;
 
     input->Close();
     delete input;
