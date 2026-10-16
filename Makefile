@@ -12,7 +12,7 @@ GEN = jets-charm jets-inc
 # Analysis programs (share analysisUtils.h)
 ANA = sanity mass buildtree features
 
-all: $(GEN) $(ANA)
+all: $(GEN) $(ANA) reconstruct-d0
 
 $(GEN): %: macros/%.cc macros/generateCommon.h macros/analysisUtils.h
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(RPATH)
