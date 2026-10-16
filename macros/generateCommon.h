@@ -92,6 +92,14 @@ inline int generateSample(SampleMode mode,
     std::vector<int>   d0TruthToKPi;  // 1 if direct D0 -> K pi decay
 
     tree.Branch("event", &event);
+    // Run bookkeeping: identifies the pThat bin for every event.
+    int runSeed = seed;
+    double eventPTHatMin = pTHatMin;
+    double eventPTHatMax = pTHatMax;
+
+    tree.Branch("runSeed", &runSeed);
+    tree.Branch("pTHatMin", &eventPTHatMin);
+    tree.Branch("pTHatMax", &eventPTHatMax);
 
     tree.Branch("pid", &pid);
     tree.Branch("charge", &charge);
@@ -237,8 +245,36 @@ inline int generateSample(SampleMode mode,
         tree.Fill();
     }
 
+    
     tree.Write();
+
+    // One row per generator run. hadd will preserve these rows
+    // when it merges the separate pThat-bin files.
+    TTree runInfo("RunInfo", "Generator run metadata");
+
+    int infoSeed = seed;
+    int nRequested = nEvents;
+    long long infoNGenerated = nGenerated;
+    double infoPTHatMin = pTHatMin;
+    double infoPTHatMax = pTHatMax;
+    double sigmaGen = p.info.sigmaGen();
+    double sigmaErr = p.info.sigmaErr();
+    int sampleType = (mode == SampleMode::Charm) ? 1 : 0;
+
+    runInfo.Branch("seed", &infoSeed);
+    runInfo.Branch("nRequested", &nRequested);
+    runInfo.Branch("nGenerated", &infoNGenerated);
+    runInfo.Branch("pTHatMin", &infoPTHatMin);
+    runInfo.Branch("pTHatMax", &infoPTHatMax);
+    runInfo.Branch("sigmaGen_mb", &sigmaGen);
+    runInfo.Branch("sigmaErr_mb", &sigmaErr);
+    runInfo.Branch("sampleType", &sampleType);
+
+    runInfo.Fill();
+    runInfo.Write();
+
     out.Close();
+
 
     // -----------------------------
     // Summary and consistency checks
