@@ -231,7 +231,8 @@ void plotD0(const char* inputName = "data/d0_reco_5_100.root",
               << "  mass_weighted-recon.png" << std::endl
               << "  mass_unweighted-recon.png" << std::endl
               << "  kpi_os_recon.png" << std::endl
-              << "  kpi_ss_recon.png" << std::endl\n              << "  mass_truth_vs_combinatorial.png (if truth histograms exist)" << std::endl;
+              << "  kpi_ss_recon.png" << std::endl              
+              << "  mass_truth_vs_combinatorial.png (if truth histograms exist)" << std::endl;
     std::cout << "Note: OS - SS is a simple bin-by-bin subtraction; "
                  "background normalization may be needed for physics interpretation."
               << std::endl;
