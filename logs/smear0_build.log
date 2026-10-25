@@ -16,3 +16,16 @@ Run seed 51005: sigmaGen = 3.32454e-10 mb, nGenerated = 999994, xsWeight = 3.324
 # It uses T. Chan's closest pair algorithm, S. Fortune's Voronoi code
 # and 3rd party plugin jet algorithms. See COPYING file for details.
 #--------------------------------------------------------------------------
+
+===== buildtree summary =====
+Input:              data/d0_inc_5_100.root
+Output:             data/candidates_smear0.root
+Events read:        4999993
+Run weights:        5 runs, events skipped for missing weight: 0
+Preselection:       daughter pT > 0.5, pair pT > 0, |eta| < 1, 1.6 < mass < 2.1
+Smearing:           pT 0, eta 0, phi 0
+Signal rows:        6483
+Background rows:    5894424  (kept fraction 1)
+Background / signal (unweighted rows): 909.212
+K and pi in the same jet:  signal 39.3182 %,  background 8.46415 %
+=============================
