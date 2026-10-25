@@ -1,0 +1,33 @@
+                         : Booking "BDT" of type "BDT" from ds_depth5/weights/TMVAClassification_BDT.weights.xml.
+                         : Reading weight file: ds_depth5/weights/TMVAClassification_BDT.weights.xml
+<HEADER> DataSetInfo              : [Default] : Added class "Signal"
+<HEADER> DataSetInfo              : [Default] : Added class "Background"
+                         : Booked classifier "BDT" of type: "BDT"
+                         : Rebuilding Dataset Default
+Scored 2945263 candidates (test events)
+Signal mass: median 1.8645, robust sigma 0.032386 GeV/c^2 -> window +- 0.064772
+ROC integral (test sample, flat weights): 0.8885
+
+Signal window: 1.864 +- 0.065 GeV/c^2
+Yields: expected counts for L = 1.000000 pb^-1
+No BDT cut:  S = 109023.873  B = 25725232.514  S/B = 0.004  S/sqrt(S+B) = 21.450
+
+  eff_S     cut    bkg_rej             S               B        S/B  S/sqrt(S+B)
+  0.954  -0.265      0.288    104058.430    18313333.149      0.006       24.247
+  0.902  -0.220      0.515     98387.658    12478372.501      0.008       27.743
+  0.810  -0.150      0.786     88284.998     5508035.968      0.016       37.319
+  0.703  -0.090      0.904     76637.026     2477923.399      0.031       47.949
+  0.503  -0.010      0.973     54887.336      696952.671      0.079       63.301
+  0.310   0.050      0.993     33813.169      192798.261      0.175       71.031
+
+Best cut (>= 20.000 background rows): BDT > 0.060  S/sqrt(S+B) = 74.348  (eff_S 0.280, bkg rejection 0.995)
+
+Mass-sculpting check (BDT > 0.060):
+  background fraction inside the signal window: before cut 0.2530, after cut 0.2436
+  background rows passing: 22347, effective rows (sumW^2/sumW2): 1601.2  (a few heavy low-pThat rows can dominate)
+Info in <TCanvas::Print>: png file plots/tmva_BDT_smear0p03_depth5_response.png has been created
+Info in <TCanvas::Print>: png file plots/tmva_BDT_smear0p03_depth5_significance.png has been created
+Info in <TCanvas::Print>: png file plots/tmva_BDT_smear0p03_depth5_bkgmass.png has been created
+
+Histograms: data/bdt_response_smear0p03_depth5.root
+Plots:      plots/tmva_BDT_smear0p03_depth5_{response,significance,bkgmass}.png

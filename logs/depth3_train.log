@@ -272,3 +272,83 @@ Testing  rows: signal 3223, background 2942040
                          : 
 <HEADER> BDT                      : [ds_depth3] : Evaluation of BDT on testing sample (2945263 events)
 <HEADER> BDT                      : [ds_depth3] : Evaluation of BDT on testing sample (2945263 events)
+                         : Elapsed time for evaluation of 2945263 events: 31.6 sec       
+                         : Elapsed time for evaluation of 2945263 events: 31.6 sec       
+<HEADER> Factory                  : Evaluate all methods
+<HEADER> Factory                  : Evaluate classifier: BDT
+                         : 
+<HEADER> BDT                      : [ds_depth3] : Loop over test events and fill histograms with classifier response...
+                         : 
+<HEADER> TFHandler_BDT            :      Variable             Mean             RMS     [        Min             Max ]
+                         : ------------------------------------------------------------------------------------
+                         :           ptK:         2.0715         3.2336   [        0.50000         62.782 ]
+                         :          ptPi:         1.8871         2.8189   [        0.50000         58.528 ]
+                         :          etaK:    -0.00048649        0.51805   [       -0.99999         1.0000 ]
+                         :         etaPi:    -0.00083128        0.50879   [        -1.0000         1.0000 ]
+                         :          dEta:     0.00034479        0.72425   [        -1.9985         1.9966 ]
+                         :          dPhi:     0.00042295         1.8289   [        -3.1416         3.1416 ]
+                         :            dR:         1.7470        0.90426   [      0.0010577         3.7029 ]
+                         :     openAngle:         1.5370        0.77403   [     0.00095572         3.1414 ]
+                         :     ptBalance:        0.36197        0.23880   [     8.1525e-08        0.98257 ]
+                         :        pairPt:         3.3726         4.7303   [     0.00047945         68.233 ]
+                         :       pairEta:     -0.0012974        0.73341   [        -7.2412         7.6363 ]
+                         :  cosThetaStar:       0.017281        0.57951   [        -1.0000         1.0000 ]
+                         :       sameJet:       0.084913        0.27875   [         0.0000         1.0000 ]
+                         :         jetPt:         22.708         21.133   [         0.0000         86.410 ]
+                         :       jetMass:         4.0881         3.2269   [      -0.013347         22.580 ]
+                         :     jetNConst:         9.0542         5.6533   [         0.0000         44.000 ]
+                         :          zJet:        0.25771        0.27456   [         0.0000         5.7195 ]
+                         :         dRJet:        0.57507        0.56748   [     4.5010e-06         9.0000 ]
+                         :      isoRel02:        0.93543         3.3187   [         0.0000         1028.8 ]
+                         :      isoRel03:         1.7267         5.2192   [         0.0000         1663.2 ]
+                         :        isoRel:         2.6412         7.0701   [         0.0000         1663.2 ]
+                         :      isoRel06:         4.7504         10.540   [         0.0000         1863.3 ]
+                         : isoNeutralRel:         1.5842         4.5370   [         0.0000         553.47 ]
+                         :      nCharged:         24.909         7.9366   [         2.0000         68.000 ]
+                         :         nJets:         3.9888         1.7989   [         0.0000         15.000 ]
+                         :   sphericityT:        0.16003        0.19998   [     1.6704e-05        0.99863 ]
+                         :       thrustT:        0.90462       0.076428   [        0.64666        0.99998 ]
+                         : ------------------------------------------------------------------------------------
+                         : 
+                         : <PlotVariables> Will not produce scatter plots ==> 
+                         : |  The number of 27 input variables and 0 target values would require 351 two-dimensional
+                         : |  histograms, which would occupy the computer's memory. Note that this
+                         : |  suppression does not have any consequences for your analysis, other
+                         : |  than not disposing of these scatter plots. You can modify the maximum
+                         : |  number of input variables allowed to generate scatter plots in your
+                         : |  script via the command line:
+                         : |  "(TMVA::gConfig().GetVariablePlotting()).fMaxNumOfAllowedVariablesForScatterPlots = <some int>;"
+                         : 
+                         : Some more output
+                         : 
+                         : Evaluation results ranked by best signal efficiency and purity (area)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : DataSet       MVA                       
+                         : Name:         Method:          ROC-integ
+                         : ds_depth3     BDT            : 0.890
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : 
+                         : Testing efficiency compared to training efficiency (overtraining check)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : DataSet              MVA              Signal efficiency: from test sample (from training sample) 
+                         : Name:                Method:          @B=0.01             @B=0.10            @B=0.30   
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : ds_depth3            BDT            : 0.357 (0.358)       0.716 (0.716)      0.881 (0.881)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : 
+<HEADER> Dataset:ds_depth3        : Created tree 'TestTree' with 2945263 events
+                         : 
+<HEADER> Dataset:ds_depth3        : Created tree 'TrainTree' with 2952084 events
+                         : 
+<HEADER> Factory                  : Thank you for using TMVA!
+                         : For citation information, please visit: http://tmva.sf.net/citeTMVA.html
+
+===== trainTMVA summary =====
+Input:    data/candidates_smear0p03.root
+Method:   BDT  (400 trees, depth 3)
+Training weights: weight
+Variables (27): ptK ptPi etaK etaPi dEta dPhi dR openAngle ptBalance pairPt pairEta cosThetaStar sameJet jetPt jetMass jetNConst zJet dRJet isoRel02 isoRel03 isoRel isoRel06 isoNeutralRel nCharged nJets sphericityT thrustT
+Weights:  ds_depth3/weights/TMVAClassification_BDT.weights.xml
+TMVA file: data/tmva_training_smear0p03_depth3.root   (root -l -e 'TMVA::TMVAGui("data/tmva_training_smear0p03_depth3.root")')
+Next:     ./applyTMVA data/candidates_smear0p03.root --method=BDT
+=============================
