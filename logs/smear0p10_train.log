@@ -1,0 +1,354 @@
+Training rows: signal 3170, background 2927552
+Testing  rows: signal 3139, background 2920749
+<HEADER> DataSetInfo              : [ds_smear0p10] : Added class "Signal"
+                         : Add Tree Candidates of type Signal with 2930722 events
+                         : Add Tree Candidates of type Signal with 2923888 events
+<HEADER> DataSetInfo              : [ds_smear0p10] : Added class "Background"
+                         : Add Tree Candidates of type Background with 2930722 events
+                         : Add Tree Candidates of type Background with 2923888 events
+<HEADER> Factory                  : Booking method: BDT
+                         : 
+                         : Rebuilding Dataset ds_smear0p10
+                         : Building event vectors for type 0 Signal
+                         : Dataset[ds_smear0p10] :  create input formulas for tree Candidates
+                         : Building event vectors for type 1 Signal
+                         : Dataset[ds_smear0p10] :  create input formulas for tree Candidates
+                         : Building event vectors for type 0 Background
+                         : Dataset[ds_smear0p10] :  create input formulas for tree Candidates
+                         : Building event vectors for type 1 Background
+                         : Dataset[ds_smear0p10] :  create input formulas for tree Candidates
+<HEADER> DataSetFactory           : [ds_smear0p10] : Number of events in input trees
+                         : Dataset[ds_smear0p10] :     Signal     requirement: "isSignal>0.5"
+                         : Dataset[ds_smear0p10] :     Signal          -- number of events passed: 6309   / sum of weights: 6309 
+                         : Dataset[ds_smear0p10] :     Signal          -- efficiency             : 0.00107761
+                         : Dataset[ds_smear0p10] :     Background requirement: "isSignal<0.5"
+                         : Dataset[ds_smear0p10] :     Background      -- number of events passed: 5848301  / sum of weights: 5.8483e+06
+                         : Dataset[ds_smear0p10] :     Background      -- efficiency             : 0.998922
+                         : Dataset[ds_smear0p10] :  you have opted for interpreting the requested number of training/testing events
+                         :  to be the number of events AFTER your preselection cuts
+                         : 
+                         : Dataset[ds_smear0p10] :  you have opted for interpreting the requested number of training/testing events
+                         :  to be the number of events AFTER your preselection cuts
+                         : 
+                         : Dataset[ds_smear0p10] : Weight renormalisation mode: "EqualNumEvents": renormalises all event classes ...
+                         : Dataset[ds_smear0p10] :  such that the effective (weighted) number of events in each class is the same 
+                         : Dataset[ds_smear0p10] :  (and equals the number of events (entries) given for class=0 )
+                         : Dataset[ds_smear0p10] : ... i.e. such that Sum[i=1..N_j]{w_i} = N_classA, j=classA, classB, ...
+                         : Dataset[ds_smear0p10] : ... (note that N_j is the sum of TRAINING events
+                         : Dataset[ds_smear0p10] :  ..... Testing events are not renormalised nor included in the renormalisation factor!)
+                         : Number of training and testing events
+                         : ---------------------------------------------------------------------------
+                         : Signal     -- training events            : 3170
+                         : Signal     -- testing events             : 3139
+                         : Signal     -- training and testing events: 6309
+                         : Dataset[ds_smear0p10] : Signal     -- due to the preselection a scaling factor has been applied to the numbers of requested events: 0.00107761
+                         : Background -- training events            : 2927552
+                         : Background -- testing events             : 2920749
+                         : Background -- training and testing events: 5848301
+                         : Dataset[ds_smear0p10] : Background -- due to the preselection a scaling factor has been applied to the numbers of requested events: 0.998922
+                         : 
+<HEADER> DataSetInfo              : Correlation matrix (Signal):
+                         : ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                         :                    ptK    ptPi    etaK   etaPi    dEta    dPhi      dR openAngle ptBalance  pairPt pairEta cosThetaStar sameJet   jetPt jetMass jetNConst    zJet   dRJet isoRel02 isoRel03  isoRel isoRel06 isoNeutralRel nCharged   nJets sphericityT thrustT
+                         :           ptK:  +1.000  +0.208  -0.008  +0.000  -0.008  +0.003  -0.484    -0.489    +0.193  +0.791  -0.005       +0.485  +0.511  +0.502  +0.356    +0.235  +0.002  -0.279   -0.032   -0.081  -0.112   -0.162        -0.066   +0.021  -0.061      -0.313  +0.336
+                         :          ptPi:  +0.208  +1.000  -0.024  -0.010  -0.015  -0.003  -0.534    -0.543    +0.100  +0.762  -0.018       -0.490  +0.612  +0.495  +0.377    +0.263  -0.009  -0.276   -0.003   -0.053  -0.088   -0.145        -0.064   +0.042  -0.054      -0.310  +0.337
+                         :          etaK:  -0.008  -0.024  +1.000  +0.508  +0.511  -0.017  +0.030    +0.028    +0.012  -0.020  +0.819       +0.003  -0.027  +0.008  +0.006    +0.019  -0.025  +0.022   +0.016   +0.026  +0.024   +0.019        +0.034   +0.021  -0.010      +0.002  +0.010
+                         :         etaPi:  +0.000  -0.010  +0.508  +1.000  -0.481  -0.008  -0.009    -0.009    +0.021  -0.005  +0.778       -0.003  -0.028  +0.003  +0.008    +0.008  +0.000  +0.004   -0.015   -0.016  -0.009   -0.013        +0.014   -0.004  -0.022      -0.016  +0.007
+                         :          dEta:  -0.008  -0.015  +0.511  -0.481  +1.000  -0.008  +0.039    +0.038    -0.009  -0.015  +0.058       +0.006  +0.000  +0.005  -0.001    +0.012  -0.025  +0.018   +0.031   +0.043  +0.033   +0.032        +0.021   +0.025  +0.012      +0.018  +0.003
+                         :          dPhi:  +0.003  -0.003  -0.017  -0.008  -0.008  +1.000  -0.014    -0.009    -0.011  +0.001  +0.020       +0.020  -0.004  -0.002  -0.007    -0.005  +0.006  -0.000   +0.012   -0.025  -0.009   -0.077        -0.008   -0.003  +0.002      +0.023  -0.016
+                         :            dR:  -0.484  -0.534  +0.030  -0.009  +0.039  -0.014  +1.000    +0.984    -0.217  -0.674  +0.024       +0.087  -0.615  -0.431  -0.385    -0.291  -0.201  +0.612   -0.029   +0.036  +0.107   +0.231        +0.104   -0.086  -0.052      +0.409  -0.414
+                         :     openAngle:  -0.489  -0.543  +0.028  -0.009  +0.038  -0.009  +0.984    +1.000    -0.213  -0.681  +0.018       +0.091  -0.625  -0.430  -0.383    -0.287  -0.194  +0.581   -0.020   +0.052  +0.128   +0.261        +0.123   -0.075  -0.040      +0.414  -0.416
+                         :     ptBalance:  +0.193  +0.100  +0.012  +0.021  -0.009  -0.011  -0.217    -0.213    +1.000  +0.197  +0.012       +0.054  +0.064  +0.161  +0.133    +0.109  -0.061  -0.251   +0.018   +0.001  -0.019   -0.063        -0.020   +0.004  -0.009      -0.180  +0.137
+                         :        pairPt:  +0.791  +0.762  -0.020  -0.005  -0.015  +0.001  -0.674    -0.681    +0.197  +1.000  -0.014       +0.013  +0.724  +0.641  +0.473    +0.322  +0.003  -0.371   -0.021   -0.086  -0.131   -0.202        -0.086   +0.042  -0.070      -0.406  +0.437
+                         :       pairEta:  -0.005  -0.018  +0.819  +0.778  +0.058  +0.020  +0.024    +0.018    +0.012  -0.014  +1.000       -0.000  -0.026  +0.006  +0.007    +0.010  -0.016  +0.028   -0.015   -0.004  +0.010   +0.002        +0.038   +0.002  -0.027      -0.006  +0.009
+                         :  cosThetaStar:  +0.485  -0.490  +0.003  -0.003  +0.006  +0.020  +0.087    +0.091    +0.054  +0.013  -0.000       +1.000  -0.113  -0.021  -0.040    -0.052  +0.021  +0.008   -0.043   -0.039  -0.041   -0.016        -0.018   -0.013  +0.006      +0.020  -0.026
+                         :       sameJet:  +0.511  +0.612  -0.027  -0.028  +0.000  -0.004  -0.615    -0.625    +0.064  +0.724  -0.026       -0.113  +1.000  +0.585  +0.552    +0.416  -0.186  -0.337   +0.055   -0.016  -0.076   -0.163        -0.053   +0.056  -0.100      -0.375  +0.400
+                         :         jetPt:  +0.502  +0.495  +0.008  +0.003  +0.005  -0.002  -0.431    -0.430    +0.161  +0.641  +0.006       -0.021  +0.585  +1.000  +0.871    +0.764  -0.527  -0.237   +0.343   +0.350  +0.287   +0.174        +0.206   +0.175  -0.103      -0.496  +0.569
+                         :       jetMass:  +0.356  +0.377  +0.006  +0.008  -0.001  -0.007  -0.385    -0.383    +0.133  +0.473  +0.007       -0.040  +0.552  +0.871  +1.000    +0.864  -0.580  -0.212   +0.306   +0.332  +0.291   +0.172        +0.183   +0.255  -0.047      -0.430  +0.493
+                         :     jetNConst:  +0.235  +0.263  +0.019  +0.008  +0.012  -0.005  -0.291    -0.287    +0.109  +0.322  +0.010       -0.052  +0.416  +0.764  +0.864    +1.000  -0.614  -0.177   +0.305   +0.328  +0.286   +0.171        +0.199   +0.317  +0.001      -0.350  +0.410
+                         :          zJet:  +0.002  -0.009  -0.025  +0.000  -0.025  +0.006  -0.201    -0.194    -0.061  +0.003  -0.016       +0.021  -0.186  -0.527  -0.580    -0.614  +1.000  -0.148   -0.326   -0.362  -0.327   -0.257        -0.207   -0.152  +0.096      +0.166  -0.202
+                         :         dRJet:  -0.279  -0.276  +0.022  +0.004  +0.018  -0.000  +0.612    +0.581    -0.251  -0.371  +0.028       +0.008  -0.337  -0.237  -0.212    -0.177  -0.148  +1.000   -0.109   -0.087  -0.057   -0.004        -0.035   -0.143  -0.180      +0.307  -0.271
+                         :      isoRel02:  -0.032  -0.003  +0.016  -0.015  +0.031  +0.012  -0.029    -0.020    +0.018  -0.021  -0.015       -0.043  +0.055  +0.343  +0.306    +0.305  -0.326  -0.109   +1.000   +0.803  +0.640   +0.413        +0.171   +0.140  -0.007      -0.160  +0.196
+                         :      isoRel03:  -0.081  -0.053  +0.026  -0.016  +0.043  -0.025  +0.036    +0.052    +0.001  -0.086  -0.004       -0.039  -0.016  +0.350  +0.332    +0.328  -0.362  -0.087   +0.803   +1.000  +0.857   +0.580        +0.320   +0.164  +0.016      -0.164  +0.204
+                         :        isoRel:  -0.112  -0.088  +0.024  -0.009  +0.033  -0.009  +0.107    +0.128    -0.019  -0.131  +0.010       -0.041  -0.076  +0.287  +0.291    +0.286  -0.327  -0.057   +0.640   +0.857  +1.000   +0.727        +0.463   +0.162  +0.038      -0.146  +0.181
+                         :      isoRel06:  -0.162  -0.145  +0.019  -0.013  +0.032  -0.077  +0.231    +0.261    -0.063  -0.202  +0.002       -0.016  -0.163  +0.174  +0.172    +0.171  -0.257  -0.004   +0.413   +0.580  +0.727   +1.000        +0.432   +0.147  +0.059      -0.128  +0.160
+                         : isoNeutralRel:  -0.066  -0.064  +0.034  +0.014  +0.021  -0.008  +0.104    +0.123    -0.020  -0.086  +0.038       -0.018  -0.053  +0.206  +0.183    +0.199  -0.207  -0.035   +0.171   +0.320  +0.463   +0.432        +1.000   +0.065  +0.022      -0.090  +0.111
+                         :      nCharged:  +0.021  +0.042  +0.021  -0.004  +0.025  -0.003  -0.086    -0.075    +0.004  +0.042  +0.002       -0.013  +0.056  +0.175  +0.255    +0.317  -0.152  -0.143   +0.140   +0.164  +0.162   +0.147        +0.065   +1.000  +0.629      -0.082  +0.034
+                         :         nJets:  -0.061  -0.054  -0.010  -0.022  +0.012  +0.002  -0.052    -0.040    -0.009  -0.070  -0.027       +0.006  -0.100  -0.103  -0.047    +0.001  +0.096  -0.180   -0.007   +0.016  +0.038   +0.059        +0.022   +0.629  +1.000      +0.070  -0.102
+                         :   sphericityT:  -0.313  -0.310  +0.002  -0.016  +0.018  +0.023  +0.409    +0.414    -0.180  -0.406  -0.006       +0.020  -0.375  -0.496  -0.430    -0.350  +0.166  +0.307   -0.160   -0.164  -0.146   -0.128        -0.090   -0.082  +0.070      +1.000  -0.889
+                         :       thrustT:  +0.336  +0.337  +0.010  +0.007  +0.003  -0.016  -0.414    -0.416    +0.137  +0.437  +0.009       -0.026  +0.400  +0.569  +0.493    +0.410  -0.202  -0.271   +0.196   +0.204  +0.181   +0.160        +0.111   +0.034  -0.102      -0.889  +1.000
+                         : ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+<HEADER> DataSetInfo              : Correlation matrix (Background):
+                         : ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                         :                    ptK    ptPi    etaK   etaPi    dEta    dPhi      dR openAngle ptBalance  pairPt pairEta cosThetaStar sameJet   jetPt jetMass jetNConst    zJet   dRJet isoRel02 isoRel03  isoRel isoRel06 isoNeutralRel nCharged   nJets sphericityT thrustT
+                         :           ptK:  +1.000  +0.091  +0.000  +0.000  -0.000  +0.001  -0.449    -0.447    +0.426  +0.774  -0.000       +0.374  +0.425  +0.320  +0.243    +0.165  +0.159  -0.292   +0.028   -0.005  -0.033   -0.078        -0.034   -0.028  -0.049      -0.184  +0.224
+                         :          ptPi:  +0.091  +1.000  +0.000  +0.000  +0.000  +0.001  -0.529    -0.532    +0.339  +0.695  -0.000       -0.456  +0.664  +0.359  +0.282    +0.218  +0.108  -0.301   +0.056   +0.016  -0.017   -0.069        -0.013   -0.039  -0.071      -0.202  +0.249
+                         :          etaK:  +0.000  +0.000  +1.000  +0.005  +0.712  +0.000  +0.000    -0.000    +0.000  +0.000  +0.627       +0.001  +0.000  +0.002  +0.002    +0.000  -0.001  +0.000   -0.000   -0.000  +0.000   +0.001        +0.000   +0.001  +0.001      -0.002  +0.002
+                         :         etaPi:  +0.000  +0.000  +0.005  +1.000  -0.699  -0.000  -0.000    -0.000    -0.000  +0.000  +0.555       +0.000  +0.000  +0.000  -0.000    -0.000  +0.000  +0.001   -0.000   +0.000  -0.000   -0.000        -0.000   +0.000  +0.000      -0.000  +0.000
+                         :          dEta:  -0.000  +0.000  +0.712  -0.699  +1.000  +0.000  +0.000    +0.000    +0.000  +0.000  +0.059       +0.001  +0.000  +0.001  +0.002    +0.000  -0.001  -0.001   +0.000   -0.000  +0.000   +0.001        +0.000   +0.001  +0.000      -0.001  +0.001
+                         :          dPhi:  +0.001  +0.001  +0.000  -0.000  +0.000  +1.000  -0.002    -0.002    +0.001  +0.001  +0.000       -0.000  +0.001  +0.000  -0.000    +0.000  +0.001  -0.000   +0.001   +0.000  +0.000   +0.000        +0.002   +0.000  -0.000      +0.001  -0.001
+                         :            dR:  -0.449  -0.529  +0.000  -0.000  +0.000  -0.002  +1.000    +0.968    -0.569  -0.710  +0.001       +0.151  -0.489  -0.398  -0.364    -0.311  -0.340  +0.599   -0.083   -0.029  +0.028   +0.138        +0.027   -0.024  -0.008      +0.258  -0.297
+                         :     openAngle:  -0.447  -0.532  -0.000  -0.000  +0.000  -0.002  +0.968    +1.000    -0.559  -0.707  +0.000       +0.157  -0.496  -0.378  -0.345    -0.291  -0.329  +0.532   -0.060   +0.001  +0.065   +0.182        +0.060   -0.006  +0.005      +0.244  -0.283
+                         :     ptBalance:  +0.426  +0.339  +0.000  -0.000  +0.000  +0.001  -0.569    -0.559    +1.000  +0.547  -0.000       +0.045  +0.291  +0.382  +0.326    +0.275  +0.103  -0.539   +0.138   +0.104  +0.068   -0.007        +0.060   +0.004  -0.040      -0.245  +0.272
+                         :        pairPt:  +0.774  +0.695  +0.000  +0.000  +0.000  +0.001  -0.710    -0.707    +0.547  +1.000  -0.000       -0.027  +0.721  +0.464  +0.363    +0.268  +0.207  -0.436   +0.061   +0.010  -0.034   -0.105        -0.032   -0.041  -0.076      -0.266  +0.324
+                         :       pairEta:  -0.000  -0.000  +0.627  +0.555  +0.059  +0.000  +0.001    +0.000    -0.000  -0.000  +1.000       +0.001  -0.000  +0.001  +0.001    +0.000  -0.001  +0.001   -0.000   +0.000  +0.000   +0.000        +0.000   +0.001  +0.001      -0.001  +0.002
+                         :  cosThetaStar:  +0.374  -0.456  +0.001  +0.000  +0.001  -0.000  +0.151    +0.157    +0.045  -0.027  +0.001       +1.000  -0.157  -0.078  -0.054    -0.081  +0.028  +0.027   -0.024   -0.017  -0.010   -0.000        -0.019   +0.010  +0.028      +0.038  -0.045
+                         :       sameJet:  +0.425  +0.664  +0.000  +0.000  +0.000  +0.001  -0.489    -0.496    +0.291  +0.721  -0.000       -0.157  +1.000  +0.383  +0.352    +0.254  +0.060  -0.278   +0.047   +0.001  -0.033   -0.079        -0.030   -0.043  -0.097      -0.198  +0.250
+                         :         jetPt:  +0.320  +0.359  +0.002  +0.000  +0.001  +0.000  -0.398    -0.378    +0.382  +0.464  +0.001       -0.078  +0.383  +1.000  +0.857    +0.757  -0.426  -0.249   +0.237   +0.243  +0.238   +0.207        +0.216   +0.052  -0.179      -0.506  +0.585
+                         :       jetMass:  +0.243  +0.282  +0.002  -0.000  +0.002  -0.000  -0.364    -0.345    +0.326  +0.363  +0.001       -0.054  +0.352  +0.857  +1.000    +0.868  -0.444  -0.240   +0.200   +0.213  +0.212   +0.183        +0.196   +0.157  -0.109      -0.437  +0.497
+                         :     jetNConst:  +0.165  +0.218  +0.000  -0.000  +0.000  +0.000  -0.311    -0.291    +0.275  +0.268  +0.000       -0.081  +0.254  +0.757  +0.868    +1.000  -0.464  -0.216   +0.174   +0.189  +0.190   +0.164        +0.208   +0.220  -0.057      -0.379  +0.426
+                         :          zJet:  +0.159  +0.108  -0.001  +0.000  -0.001  +0.001  -0.340    -0.329    +0.103  +0.207  -0.001       +0.028  +0.060  -0.426  -0.444    -0.464  +1.000  -0.226   -0.124   -0.151  -0.167   -0.185        -0.154   -0.049  +0.127      +0.172  -0.181
+                         :         dRJet:  -0.292  -0.301  +0.000  +0.001  -0.001  -0.000  +0.599    +0.532    -0.539  -0.436  +0.001       +0.027  -0.278  -0.249  -0.240    -0.216  -0.226  +1.000   -0.191   -0.196  -0.191   -0.158        -0.173   -0.137  -0.174      +0.233  -0.239
+                         :      isoRel02:  +0.028  +0.056  -0.000  -0.000  +0.000  +0.001  -0.083    -0.060    +0.138  +0.061  -0.000       -0.024  +0.047  +0.237  +0.200    +0.174  -0.124  -0.191   +1.000   +0.780  +0.620   +0.415        +0.335   +0.045  -0.018      -0.127  +0.150
+                         :      isoRel03:  -0.005  +0.016  -0.000  +0.000  -0.000  +0.000  -0.029    +0.001    +0.104  +0.010  +0.000       -0.017  +0.001  +0.243  +0.213    +0.189  -0.151  -0.196   +0.780   +1.000  +0.848   +0.593        +0.473   +0.066  -0.007      -0.136  +0.158
+                         :        isoRel:  -0.033  -0.017  +0.000  -0.000  +0.000  +0.000  +0.028    +0.065    +0.068  -0.034  +0.000       -0.010  -0.033  +0.238  +0.212    +0.190  -0.167  -0.191   +0.620   +0.848  +1.000   +0.755        +0.540   +0.084  +0.004      -0.143  +0.162
+                         :      isoRel06:  -0.078  -0.069  +0.001  -0.000  +0.001  +0.000  +0.138    +0.182    -0.007  -0.105  +0.000       -0.000  -0.079  +0.207  +0.183    +0.164  -0.185  -0.158   +0.415   +0.593  +0.755   +1.000        +0.449   +0.109  +0.019      -0.148  +0.162
+                         : isoNeutralRel:  -0.034  -0.013  +0.000  -0.000  +0.000  +0.002  +0.027    +0.060    +0.060  -0.032  +0.000       -0.019  -0.030  +0.216  +0.196    +0.208  -0.154  -0.173   +0.335   +0.473  +0.540   +0.449        +1.000   +0.040  +0.004      -0.116  +0.127
+                         :      nCharged:  -0.028  -0.039  +0.001  +0.000  +0.001  +0.000  -0.024    -0.006    +0.004  -0.041  +0.001       +0.010  -0.043  +0.052  +0.157    +0.220  -0.049  -0.137   +0.045   +0.066  +0.084   +0.109        +0.040   +1.000  +0.636      -0.105  +0.042
+                         :         nJets:  -0.049  -0.071  +0.001  +0.000  +0.000  -0.000  -0.008    +0.005    -0.040  -0.076  +0.001       +0.028  -0.097  -0.179  -0.109    -0.057  +0.127  -0.174   -0.018   -0.007  +0.004   +0.019        +0.004   +0.636  +1.000      +0.036  -0.093
+                         :   sphericityT:  -0.184  -0.202  -0.002  -0.000  -0.001  +0.001  +0.258    +0.244    -0.245  -0.266  -0.001       +0.038  -0.198  -0.506  -0.437    -0.379  +0.172  +0.233   -0.127   -0.136  -0.143   -0.148        -0.116   -0.105  +0.036      +1.000  -0.918
+                         :       thrustT:  +0.224  +0.249  +0.002  +0.000  +0.001  -0.001  -0.297    -0.283    +0.272  +0.324  +0.002       -0.045  +0.250  +0.585  +0.497    +0.426  -0.181  -0.239   +0.150   +0.158  +0.162   +0.162        +0.127   +0.042  -0.093      -0.918  +1.000
+                         : ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+<HEADER> DataSetFactory           : [ds_smear0p10] :  
+                         : 
+<HEADER> Factory                  : Train all methods
+<HEADER> Factory                  : [ds_smear0p10] : Create Transformation "I" with events from all classes.
+                         : 
+<HEADER>                          : Transformation, Variable selection : 
+                         : Input : variable 'ptK' <---> Output : variable 'ptK'
+                         : Input : variable 'ptPi' <---> Output : variable 'ptPi'
+                         : Input : variable 'etaK' <---> Output : variable 'etaK'
+                         : Input : variable 'etaPi' <---> Output : variable 'etaPi'
+                         : Input : variable 'dEta' <---> Output : variable 'dEta'
+                         : Input : variable 'dPhi' <---> Output : variable 'dPhi'
+                         : Input : variable 'dR' <---> Output : variable 'dR'
+                         : Input : variable 'openAngle' <---> Output : variable 'openAngle'
+                         : Input : variable 'ptBalance' <---> Output : variable 'ptBalance'
+                         : Input : variable 'pairPt' <---> Output : variable 'pairPt'
+                         : Input : variable 'pairEta' <---> Output : variable 'pairEta'
+                         : Input : variable 'cosThetaStar' <---> Output : variable 'cosThetaStar'
+                         : Input : variable 'sameJet' <---> Output : variable 'sameJet'
+                         : Input : variable 'jetPt' <---> Output : variable 'jetPt'
+                         : Input : variable 'jetMass' <---> Output : variable 'jetMass'
+                         : Input : variable 'jetNConst' <---> Output : variable 'jetNConst'
+                         : Input : variable 'zJet' <---> Output : variable 'zJet'
+                         : Input : variable 'dRJet' <---> Output : variable 'dRJet'
+                         : Input : variable 'isoRel02' <---> Output : variable 'isoRel02'
+                         : Input : variable 'isoRel03' <---> Output : variable 'isoRel03'
+                         : Input : variable 'isoRel' <---> Output : variable 'isoRel'
+                         : Input : variable 'isoRel06' <---> Output : variable 'isoRel06'
+                         : Input : variable 'isoNeutralRel' <---> Output : variable 'isoNeutralRel'
+                         : Input : variable 'nCharged' <---> Output : variable 'nCharged'
+                         : Input : variable 'nJets' <---> Output : variable 'nJets'
+                         : Input : variable 'sphericityT' <---> Output : variable 'sphericityT'
+                         : Input : variable 'thrustT' <---> Output : variable 'thrustT'
+<HEADER> TFHandler_Factory        :      Variable             Mean             RMS     [        Min             Max ]
+                         : ------------------------------------------------------------------------------------
+                         :           ptK:         3.5369         4.6991   [        0.50000         70.702 ]
+                         :          ptPi:         3.2942         4.3534   [        0.50000         62.511 ]
+                         :          etaK:      0.0011930        0.49591   [        -1.0000         1.0000 ]
+                         :         etaPi:     -0.0017382        0.48637   [        -1.0000         1.0000 ]
+                         :          dEta:      0.0029312        0.60812   [        -1.9976         1.9984 ]
+                         :          dPhi:     0.00091881         1.4383   [        -3.1416         3.1416 ]
+                         :            dR:         1.2562        0.92770   [      0.0011622         3.7025 ]
+                         :     openAngle:         1.1117        0.79891   [      0.0010333         3.1408 ]
+                         :     ptBalance:        0.38197        0.24138   [     6.1184e-08        0.98340 ]
+                         :        pairPt:         6.4345         7.4285   [     0.00054786         72.428 ]
+                         :       pairEta:     0.00080532        0.62784   [        -7.9579         7.4853 ]
+                         :  cosThetaStar:      -0.010705        0.55720   [        -1.0000         1.0000 ]
+                         :       sameJet:        0.23719        0.42536   [         0.0000         1.0000 ]
+                         :         jetPt:         21.941         19.915   [         0.0000         84.395 ]
+                         :       jetMass:         3.9417         3.1460   [      -0.013728         21.120 ]
+                         :     jetNConst:         8.5651         5.5575   [         0.0000         48.000 ]
+                         :          zJet:        0.44931        0.40066   [         0.0000         6.9201 ]
+                         :         dRJet:        0.41997        0.55940   [     4.7837e-06         9.0000 ]
+                         :      isoRel02:        0.68704         2.5096   [         0.0000         1246.3 ]
+                         :      isoRel03:         1.2198         3.8880   [         0.0000         1427.9 ]
+                         :        isoRel:         1.8171         5.2264   [         0.0000         1427.9 ]
+                         :      isoRel06:         3.1783         7.9729   [         0.0000         1427.9 ]
+                         : isoNeutralRel:         1.0930         3.5509   [         0.0000         722.32 ]
+                         :      nCharged:         23.551         8.0544   [         2.0000         69.000 ]
+                         :         nJets:         3.9270         1.7524   [         0.0000         17.000 ]
+                         :   sphericityT:        0.15318        0.18967   [     4.1932e-05        0.99866 ]
+                         :       thrustT:        0.90696       0.074441   [        0.64607        0.99998 ]
+                         : ------------------------------------------------------------------------------------
+                         : 
+                         : <PlotVariables> Will not produce scatter plots ==> 
+                         : |  The number of 27 input variables and 0 target values would require 351 two-dimensional
+                         : |  histograms, which would occupy the computer's memory. Note that this
+                         : |  suppression does not have any consequences for your analysis, other
+                         : |  than not disposing of these scatter plots. You can modify the maximum
+                         : |  number of input variables allowed to generate scatter plots in your
+                         : |  script via the command line:
+                         : |  "(TMVA::gConfig().GetVariablePlotting()).fMaxNumOfAllowedVariablesForScatterPlots = <some int>;"
+                         : 
+                         : Some more output
+                         : Ranking input variables (method unspecific)...
+<HEADER> IdTransformation         : Ranking result (top variable is best ranked)
+                         : --------------------------------------
+                         : Rank : Variable      : Separation
+                         : --------------------------------------
+                         :    1 : openAngle     : 2.992e-01
+                         :    2 : dR            : 2.932e-01
+                         :    3 : zJet          : 2.851e-01
+                         :    4 : pairPt        : 2.760e-01
+                         :    5 : dPhi          : 2.495e-01
+                         :    6 : ptPi          : 2.053e-01
+                         :    7 : ptK           : 1.958e-01
+                         :    8 : dRJet         : 1.825e-01
+                         :    9 : sameJet       : 1.255e-01
+                         :   10 : isoRel06      : 1.046e-01
+                         :   11 : dEta          : 9.743e-02
+                         :   12 : isoRel        : 6.900e-02
+                         :   13 : isoNeutralRel : 5.931e-02
+                         :   14 : isoRel03      : 4.659e-02
+                         :   15 : pairEta       : 4.526e-02
+                         :   16 : nCharged      : 3.326e-02
+                         :   17 : isoRel02      : 3.046e-02
+                         :   18 : jetPt         : 2.629e-02
+                         :   19 : cosThetaStar  : 1.712e-02
+                         :   20 : jetNConst     : 1.421e-02
+                         :   21 : etaK          : 1.101e-02
+                         :   22 : ptBalance     : 1.064e-02
+                         :   23 : jetMass       : 9.557e-03
+                         :   24 : etaPi         : 9.240e-03
+                         :   25 : sphericityT   : 8.297e-03
+                         :   26 : thrustT       : 4.063e-03
+                         :   27 : nJets         : 2.934e-03
+                         : --------------------------------------
+<HEADER> Factory                  : Train method: BDT for Classification
+                         : 
+<HEADER> BDT                      : #events: (reweighted) sig: 1.46536e+06 bkg: 1.46536e+06
+                         : #events: (unweighted) sig: 3170 bkg: 2927552
+                         : Training 400 Decision Trees ... patience please
+                         : Elapsed time for training with 2930722 events: 385 sec         
+<HEADER> BDT                      : [ds_smear0p10] : Evaluation of BDT on training sample (2930722 events)
+<HEADER> BDT                      : [ds_smear0p10] : Evaluation of BDT on training sample (2930722 events)
+                         : Elapsed time for evaluation of 2930722 events: 36.6 sec       
+                         : Elapsed time for evaluation of 2930722 events: 36.6 sec       
+                         : Creating xml weight file: ds_smear0p10/weights/TMVAClassification_BDT.weights.xml
+                         : Creating standalone class: ds_smear0p10/weights/TMVAClassification_BDT.class.C
+                         : data/tmva_training_smear0p10.root:/ds_smear0p10/Method_BDT/BDT
+<HEADER> Factory                  : Training finished
+                         : 
+                         : Ranking input variables (method specific)...
+<HEADER> BDT                      : Ranking result (top variable is best ranked)
+                         : -----------------------------------------------
+                         : Rank : Variable      : Variable Importance
+                         : -----------------------------------------------
+                         :    1 : openAngle     : 7.301e-02
+                         :    2 : dPhi          : 5.698e-02
+                         :    3 : dEta          : 5.416e-02
+                         :    4 : dR            : 5.032e-02
+                         :    5 : ptBalance     : 4.891e-02
+                         :    6 : cosThetaStar  : 4.884e-02
+                         :    7 : etaPi         : 4.718e-02
+                         :    8 : nCharged      : 4.655e-02
+                         :    9 : zJet          : 4.624e-02
+                         :   10 : etaK          : 4.563e-02
+                         :   11 : dRJet         : 4.269e-02
+                         :   12 : thrustT       : 4.157e-02
+                         :   13 : jetNConst     : 4.111e-02
+                         :   14 : jetPt         : 4.105e-02
+                         :   15 : jetMass       : 4.077e-02
+                         :   16 : sphericityT   : 3.411e-02
+                         :   17 : pairPt        : 3.390e-02
+                         :   18 : nJets         : 3.082e-02
+                         :   19 : ptPi          : 3.001e-02
+                         :   20 : pairEta       : 2.518e-02
+                         :   21 : ptK           : 2.342e-02
+                         :   22 : isoNeutralRel : 2.213e-02
+                         :   23 : isoRel02      : 2.130e-02
+                         :   24 : isoRel06      : 1.879e-02
+                         :   25 : isoRel03      : 1.441e-02
+                         :   26 : isoRel        : 1.161e-02
+                         :   27 : sameJet       : 9.318e-03
+                         : -----------------------------------------------
+<HEADER> Factory                  : === Destroy and recreate all methods via weight files for testing ===
+                         : 
+                         : Reading weight file: ds_smear0p10/weights/TMVAClassification_BDT.weights.xml
+<HEADER> Factory                  : Test all methods
+<HEADER> Factory                  : Test method: BDT for Classification performance
+                         : 
+<HEADER> BDT                      : [ds_smear0p10] : Evaluation of BDT on testing sample (2923888 events)
+<HEADER> BDT                      : [ds_smear0p10] : Evaluation of BDT on testing sample (2923888 events)
+                         : Elapsed time for evaluation of 2923888 events: 34.4 sec       
+                         : Elapsed time for evaluation of 2923888 events: 34.4 sec       
+<HEADER> Factory                  : Evaluate all methods
+<HEADER> Factory                  : Evaluate classifier: BDT
+                         : 
+<HEADER> BDT                      : [ds_smear0p10] : Loop over test events and fill histograms with classifier response...
+                         : 
+<HEADER> TFHandler_BDT            :      Variable             Mean             RMS     [        Min             Max ]
+                         : ------------------------------------------------------------------------------------
+                         :           ptK:         2.0779         3.2597   [        0.50000         71.162 ]
+                         :          ptPi:         1.8948         2.8388   [        0.50000         61.329 ]
+                         :          etaK:    -0.00055768        0.51784   [       -0.99999         1.0000 ]
+                         :         etaPi:    -0.00059342        0.50853   [        -1.0000         1.0000 ]
+                         :          dEta:     3.5747e-05        0.72352   [        -1.9986         1.9966 ]
+                         :          dPhi:     7.4478e-05         1.8279   [        -3.1416         3.1416 ]
+                         :            dR:         1.7450        0.90527   [      0.0010577         3.7029 ]
+                         :     openAngle:         1.5354        0.77508   [     0.00095572         3.1414 ]
+                         :     ptBalance:        0.36200        0.23889   [     1.5681e-07        0.98420 ]
+                         :        pairPt:         3.3872         4.7671   [     0.00061218         73.624 ]
+                         :       pairEta:    -0.00098866        0.73292   [        -6.6743         7.6234 ]
+                         :  cosThetaStar:       0.016841        0.57967   [        -1.0000         1.0000 ]
+                         :       sameJet:       0.085688        0.27990   [         0.0000         1.0000 ]
+                         :         jetPt:         22.728         21.144   [         0.0000         86.410 ]
+                         :       jetMass:         4.0899         3.2284   [      -0.013347         22.053 ]
+                         :     jetNConst:         9.0567         5.6570   [         0.0000         44.000 ]
+                         :          zJet:        0.25914        0.27790   [         0.0000         6.6905 ]
+                         :         dRJet:        0.57569        0.56726   [     1.4440e-05         9.0000 ]
+                         :      isoRel02:        0.93234         3.3934   [         0.0000         1475.3 ]
+                         :      isoRel03:         1.7216         5.2841   [         0.0000         1502.1 ]
+                         :        isoRel:         2.6361         7.0036   [         0.0000         1605.9 ]
+                         :      isoRel06:         4.7513         10.575   [         0.0000         2268.4 ]
+                         : isoNeutralRel:         1.5822         4.5992   [         0.0000         844.32 ]
+                         :      nCharged:         24.910         7.9364   [         2.0000         68.000 ]
+                         :         nJets:         3.9884         1.7979   [         0.0000         15.000 ]
+                         :   sphericityT:        0.15979        0.19983   [     1.6704e-05        0.99867 ]
+                         :       thrustT:        0.90474       0.076410   [        0.64666        0.99998 ]
+                         : ------------------------------------------------------------------------------------
+                         : 
+                         : <PlotVariables> Will not produce scatter plots ==> 
+                         : |  The number of 27 input variables and 0 target values would require 351 two-dimensional
+                         : |  histograms, which would occupy the computer's memory. Note that this
+                         : |  suppression does not have any consequences for your analysis, other
+                         : |  than not disposing of these scatter plots. You can modify the maximum
+                         : |  number of input variables allowed to generate scatter plots in your
+                         : |  script via the command line:
+                         : |  "(TMVA::gConfig().GetVariablePlotting()).fMaxNumOfAllowedVariablesForScatterPlots = <some int>;"
+                         : 
+                         : Some more output
+                         : 
+                         : Evaluation results ranked by best signal efficiency and purity (area)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : DataSet       MVA                       
+                         : Name:         Method:          ROC-integ
+                         : ds_smear0p10  BDT            : 0.889
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : 
+                         : Testing efficiency compared to training efficiency (overtraining check)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : DataSet              MVA              Signal efficiency: from test sample (from training sample) 
+                         : Name:                Method:          @B=0.01             @B=0.10            @B=0.30   
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : ds_smear0p10         BDT            : 0.353 (0.352)       0.705 (0.705)      0.877 (0.877)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : 
+<HEADER> Dataset:ds_smear0p10     : Created tree 'TestTree' with 2923888 events
+                         : 
+<HEADER> Dataset:ds_smear0p10     : Created tree 'TrainTree' with 2930722 events
+                         : 
+<HEADER> Factory                  : Thank you for using TMVA!
+                         : For citation information, please visit: http://tmva.sf.net/citeTMVA.html
+
+===== trainTMVA summary =====
+Input:    data/candidates_smear0p10.root
+Method:   BDT  (400 trees, depth 3)
+Training weights: weight
+Variables (27): ptK ptPi etaK etaPi dEta dPhi dR openAngle ptBalance pairPt pairEta cosThetaStar sameJet jetPt jetMass jetNConst zJet dRJet isoRel02 isoRel03 isoRel isoRel06 isoNeutralRel nCharged nJets sphericityT thrustT
+Weights:  ds_smear0p10/weights/TMVAClassification_BDT.weights.xml
+TMVA file: data/tmva_training_smear0p10.root   (root -l -e 'TMVA::TMVAGui("data/tmva_training_smear0p10.root")')
+Next:     ./applyTMVA data/candidates_smear0p10.root --method=BDT
+=============================

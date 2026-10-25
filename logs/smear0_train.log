@@ -221,3 +221,134 @@ Testing  rows: signal 3225, background 2944450
 <HEADER> BDT                      : #events: (reweighted) sig: 1.47662e+06 bkg: 1.47662e+06
                          : #events: (unweighted) sig: 3258 bkg: 2949974
                          : Training 400 Decision Trees ... patience please
+                         : Elapsed time for training with 2953232 events: 389 sec         
+<HEADER> BDT                      : [ds_smear0] : Evaluation of BDT on training sample (2953232 events)
+<HEADER> BDT                      : [ds_smear0] : Evaluation of BDT on training sample (2953232 events)
+                         : Elapsed time for evaluation of 2953232 events: 38.2 sec       
+                         : Elapsed time for evaluation of 2953232 events: 38.2 sec       
+                         : Creating xml weight file: ds_smear0/weights/TMVAClassification_BDT.weights.xml
+                         : Creating standalone class: ds_smear0/weights/TMVAClassification_BDT.class.C
+                         : data/tmva_training_smear0.root:/ds_smear0/Method_BDT/BDT
+<HEADER> Factory                  : Training finished
+                         : 
+                         : Ranking input variables (method specific)...
+<HEADER> BDT                      : Ranking result (top variable is best ranked)
+                         : -----------------------------------------------
+                         : Rank : Variable      : Variable Importance
+                         : -----------------------------------------------
+                         :    1 : openAngle     : 6.309e-02
+                         :    2 : dPhi          : 5.834e-02
+                         :    3 : zJet          : 5.743e-02
+                         :    4 : dR            : 5.586e-02
+                         :    5 : cosThetaStar  : 5.206e-02
+                         :    6 : dEta          : 5.192e-02
+                         :    7 : etaK          : 4.920e-02
+                         :    8 : nCharged      : 4.617e-02
+                         :    9 : etaPi         : 4.350e-02
+                         :   10 : thrustT       : 4.250e-02
+                         :   11 : ptBalance     : 4.232e-02
+                         :   12 : jetPt         : 4.040e-02
+                         :   13 : sphericityT   : 4.021e-02
+                         :   14 : jetMass       : 3.976e-02
+                         :   15 : jetNConst     : 3.947e-02
+                         :   16 : pairPt        : 3.530e-02
+                         :   17 : dRJet         : 3.316e-02
+                         :   18 : ptPi          : 3.036e-02
+                         :   19 : nJets         : 2.925e-02
+                         :   20 : pairEta       : 2.824e-02
+                         :   21 : ptK           : 2.394e-02
+                         :   22 : isoRel02      : 2.049e-02
+                         :   23 : isoNeutralRel : 2.028e-02
+                         :   24 : isoRel03      : 1.933e-02
+                         :   25 : isoRel06      : 1.893e-02
+                         :   26 : sameJet       : 1.186e-02
+                         :   27 : isoRel        : 6.640e-03
+                         : -----------------------------------------------
+<HEADER> Factory                  : === Destroy and recreate all methods via weight files for testing ===
+                         : 
+                         : Reading weight file: ds_smear0/weights/TMVAClassification_BDT.weights.xml
+<HEADER> Factory                  : Test all methods
+<HEADER> Factory                  : Test method: BDT for Classification performance
+                         : 
+<HEADER> BDT                      : [ds_smear0] : Evaluation of BDT on testing sample (2947675 events)
+<HEADER> BDT                      : [ds_smear0] : Evaluation of BDT on testing sample (2947675 events)
+                         : Elapsed time for evaluation of 2947675 events: 32.4 sec       
+                         : Elapsed time for evaluation of 2947675 events: 32.4 sec       
+<HEADER> Factory                  : Evaluate all methods
+<HEADER> Factory                  : Evaluate classifier: BDT
+                         : 
+<HEADER> BDT                      : [ds_smear0] : Loop over test events and fill histograms with classifier response...
+                         : 
+<HEADER> TFHandler_BDT            :      Variable             Mean             RMS     [        Min             Max ]
+                         : ------------------------------------------------------------------------------------
+                         :           ptK:         2.0707         3.2316   [        0.50000         60.833 ]
+                         :          ptPi:         1.8868         2.8189   [        0.50000         58.504 ]
+                         :          etaK:    -0.00067961        0.51807   [       -0.99999         1.0000 ]
+                         :         etaPi:    -0.00063475        0.50880   [        -1.0000         1.0000 ]
+                         :          dEta:    -4.4862e-05        0.72441   [        -1.9985         1.9966 ]
+                         :          dPhi:     0.00084885         1.8290   [        -3.1416         3.1416 ]
+                         :            dR:         1.7471        0.90411   [      0.0010577         3.6979 ]
+                         :     openAngle:         1.5372        0.77390   [     0.00095572         3.1414 ]
+                         :     ptBalance:        0.36202        0.23882   [     6.7664e-08        0.98195 ]
+                         :        pairPt:         3.3714         4.7283   [     0.00059887         67.068 ]
+                         :       pairEta:     -0.0013392        0.73344   [        -6.9975         7.3170 ]
+                         :  cosThetaStar:       0.017341        0.57952   [        -1.0000         1.0000 ]
+                         :       sameJet:       0.084905        0.27874   [         0.0000         1.0000 ]
+                         :         jetPt:         22.706         21.136   [         0.0000         86.410 ]
+                         :       jetMass:         4.0879         3.2276   [      -0.013347         22.580 ]
+                         :     jetNConst:         9.0530         5.6522   [         0.0000         44.000 ]
+                         :          zJet:        0.25759        0.27423   [         0.0000         5.6191 ]
+                         :         dRJet:        0.57502        0.56759   [     9.5038e-10         9.0000 ]
+                         :      isoRel02:        0.93481         3.3608   [         0.0000         1289.8 ]
+                         :      isoRel03:         1.7262         5.2499   [         0.0000         1405.0 ]
+                         :        isoRel:         2.6387         6.9992   [         0.0000         1421.6 ]
+                         :      isoRel06:         4.7515         10.739   [         0.0000         3654.0 ]
+                         : isoNeutralRel:         1.5854         4.5729   [         0.0000         757.19 ]
+                         :      nCharged:         24.910         7.9365   [         2.0000         68.000 ]
+                         :         nJets:         3.9888         1.7992   [         0.0000         15.000 ]
+                         :   sphericityT:        0.16005        0.20001   [     1.6704e-05        0.99863 ]
+                         :       thrustT:        0.90460       0.076442   [        0.64666        0.99998 ]
+                         : ------------------------------------------------------------------------------------
+                         : 
+                         : <PlotVariables> Will not produce scatter plots ==> 
+                         : |  The number of 27 input variables and 0 target values would require 351 two-dimensional
+                         : |  histograms, which would occupy the computer's memory. Note that this
+                         : |  suppression does not have any consequences for your analysis, other
+                         : |  than not disposing of these scatter plots. You can modify the maximum
+                         : |  number of input variables allowed to generate scatter plots in your
+                         : |  script via the command line:
+                         : |  "(TMVA::gConfig().GetVariablePlotting()).fMaxNumOfAllowedVariablesForScatterPlots = <some int>;"
+                         : 
+                         : Some more output
+                         : 
+                         : Evaluation results ranked by best signal efficiency and purity (area)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : DataSet       MVA                       
+                         : Name:         Method:          ROC-integ
+                         : ds_smear0     BDT            : 0.889
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : 
+                         : Testing efficiency compared to training efficiency (overtraining check)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : DataSet              MVA              Signal efficiency: from test sample (from training sample) 
+                         : Name:                Method:          @B=0.01             @B=0.10            @B=0.30   
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : ds_smear0            BDT            : 0.357 (0.357)       0.717 (0.717)      0.876 (0.876)
+                         : -------------------------------------------------------------------------------------------------------------------
+                         : 
+<HEADER> Dataset:ds_smear0        : Created tree 'TestTree' with 2947675 events
+                         : 
+<HEADER> Dataset:ds_smear0        : Created tree 'TrainTree' with 2953232 events
+                         : 
+<HEADER> Factory                  : Thank you for using TMVA!
+                         : For citation information, please visit: http://tmva.sf.net/citeTMVA.html
+
+===== trainTMVA summary =====
+Input:    data/candidates_smear0.root
+Method:   BDT  (400 trees, depth 3)
+Training weights: weight
+Variables (27): ptK ptPi etaK etaPi dEta dPhi dR openAngle ptBalance pairPt pairEta cosThetaStar sameJet jetPt jetMass jetNConst zJet dRJet isoRel02 isoRel03 isoRel isoRel06 isoNeutralRel nCharged nJets sphericityT thrustT
+Weights:  ds_smear0/weights/TMVAClassification_BDT.weights.xml
+TMVA file: data/tmva_training_smear0.root   (root -l -e 'TMVA::TMVAGui("data/tmva_training_smear0.root")')
+Next:     ./applyTMVA data/candidates_smear0.root --method=BDT
+=============================

@@ -1,0 +1,33 @@
+                         : Booking "BDT" of type "BDT" from ds_smear0p10/weights/TMVAClassification_BDT.weights.xml.
+                         : Reading weight file: ds_smear0p10/weights/TMVAClassification_BDT.weights.xml
+<HEADER> DataSetInfo              : [Default] : Added class "Signal"
+<HEADER> DataSetInfo              : [Default] : Added class "Background"
+                         : Booked classifier "BDT" of type: "BDT"
+                         : Rebuilding Dataset Default
+Scored 2923888 candidates (test events)
+Signal mass: median 1.8619, robust sigma 0.10526 GeV/c^2 -> window +- 0.21051
+ROC integral (test sample, flat weights): 0.8891
+
+Signal window: 1.862 +- 0.211 GeV/c^2
+Yields: expected counts for L = 1.000000 pb^-1
+No BDT cut:  S = 107807.396  B = 83513239.879  S/B = 0.001  S/sqrt(S+B) = 11.789
+
+  eff_S     cut    bkg_rej             S               B        S/B  S/sqrt(S+B)
+  0.954  -0.215      0.334    102875.023    55605101.748      0.002       13.783
+  0.901  -0.160      0.577     97124.612    35298282.401      0.003       16.325
+  0.807  -0.095      0.787     87045.005    17808965.894      0.005       20.576
+  0.711  -0.040      0.890     76602.853     9167489.650      0.008       25.195
+  0.509   0.050      0.970     54886.078     2474066.411      0.022       34.514
+  0.325   0.105      0.991     35053.955      782040.531      0.045       38.779
+
+Best cut (>= 20.000 background rows): BDT > 0.135  S/sqrt(S+B) = 39.692  (eff_S 0.219, bkg rejection 0.996)
+
+Mass-sculpting check (BDT > 0.135):
+  background fraction inside the signal window: before cut 0.8288, after cut 0.7944
+  background rows passing: 17957, effective rows (sumW^2/sumW2): 1193.6  (a few heavy low-pThat rows can dominate)
+Info in <TCanvas::Print>: png file plots/tmva_BDT_smear0p10_response.png has been created
+Info in <TCanvas::Print>: png file plots/tmva_BDT_smear0p10_significance.png has been created
+Info in <TCanvas::Print>: png file plots/tmva_BDT_smear0p10_bkgmass.png has been created
+
+Histograms: data/bdt_response_smear0p10.root
+Plots:      plots/tmva_BDT_smear0p10_{response,significance,bkgmass}.png
