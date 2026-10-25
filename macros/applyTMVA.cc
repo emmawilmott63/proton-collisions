@@ -12,7 +12,9 @@
 
 #include "TMVA/Reader.h"
 
+#include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -30,8 +32,12 @@
 //   --events=test|all   test = ODD event numbers only (never seen in
 //                       training); "all" includes training events and is
 //                       over-optimistic                       [test]
-//   --mass-peak=X       D0 mass for the signal window         [1.86484]
-//   --sig-window=X      half-width of the signal window       [0.05]
+//   --sig-window=X      half-width of the signal window       [auto]
+//   --mass-peak=X       centre of the signal window           [auto]
+//   --window-nsigma=X   auto window = X * robust sigma of the signal
+//                       mass (16-84% quantiles, true D0 -> K pi rows,
+//                       median as centre)                     [2]
+//   --min-window=X      floor for the auto window             [0.005]
 //   --mass-min=X --mass-max=X   mass histogram range          [1.6, 2.1]
 //   --lumi-pb=X         integrated luminosity for the yields, in pb^-1
 //                       (needs xsWeight in the candidate tree) [1]
@@ -74,8 +80,12 @@ int main(int argc, char* argv[]) {
     const std::string outName =
         getOption(argc, argv, "out", "data/bdt_response" + tag + ".root");
 
-    const double massPeak  = getNumber(argc, argv, "mass-peak", 1.86484);
-    const double sigWindow = getNumber(argc, argv, "sig-window", 0.05);
+    // Signal window: by default taken from the signal mass distribution
+    // itself (median +- nSigma * robust sigma), so it follows the smearing.
+    const double massPeakOpt  = getNumber(argc, argv, "mass-peak", -1.0);
+    const double sigWindowOpt = getNumber(argc, argv, "sig-window", -1.0);
+    const double windowNSigma = getNumber(argc, argv, "window-nsigma", 2.0);
+    const double minWindow    = getNumber(argc, argv, "min-window", 0.005);
     const double massMin   = getNumber(argc, argv, "mass-min", 1.6);
     const double massMax   = getNumber(argc, argv, "mass-max", 2.1);
     const double lumiPb    = getNumber(argc, argv, "lumi-pb", 1.0);
@@ -155,7 +165,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     // Score every selected candidate
     // -----------------------------
-    struct Row { float score, mass; double w; bool sig; };
+    struct Row { float score, mass; double w; float wFlat; bool sig; };
     std::vector<Row> rows;
 
     const Long64_t nEntries = tree->GetEntries();
@@ -167,10 +177,38 @@ int main(int argc, char* argv[]) {
         if (hasXs)
             w *= b_xsWeight * lumiMb;
         rows.push_back({static_cast<float>(reader.EvaluateMVA(method.c_str())),
-                        b_mass, w, b_isSignal == 1});
+                        b_mass, w, b_weight, b_isSignal == 1});
     }
     std::cout << "Scored " << rows.size() << " candidates (" << events
               << " events)\n";
+
+    // -----------------------------
+    // Signal window from the signal mass distribution
+    // -----------------------------
+    double massPeak = 1.86484, sigWindow = 0.05, sigmaEff = 0.0;
+    {
+        std::vector<double> ms;
+        for (const Row& r : rows)
+            if (r.sig && std::abs(r.mass - 1.86484) < 0.3)
+                ms.push_back(r.mass);
+        if (ms.size() >= 20) {
+            std::sort(ms.begin(), ms.end());
+            const auto q = [&](double f) {
+                return ms[static_cast<size_t>(f * (ms.size() - 1))];
+            };
+            massPeak = q(0.5);
+            sigmaEff = 0.5 * (q(0.84) - q(0.16));
+            sigWindow = std::max(windowNSigma * sigmaEff, minWindow);
+        } else {
+            std::cerr << "Warning: fewer than 20 signal rows; using default "
+                         "window 1.86484 +- 0.05\n";
+        }
+        if (massPeakOpt > 0)  massPeak  = massPeakOpt;
+        if (sigWindowOpt > 0) sigWindow = sigWindowOpt;
+        std::cout << "Signal mass: median " << std::setprecision(5)
+                  << massPeak << ", robust sigma " << sigmaEff
+                  << " GeV/c^2 -> window +- " << sigWindow << "\n";
+    }
 
     // -----------------------------
     // Histograms
@@ -186,15 +224,35 @@ int main(int argc, char* argv[]) {
     TH1D hBkgWin("hScoreWindow_bkg", "background in window", nScore, -1, 1);
     TH1D hBkgRows("hScoreWindow_bkg_rows",
                   "background rows in window (unweighted)", nScore, -1, 1);
+    // flat-weight response (training weights, all masses) for the ROC integral
+    TH1D hAucSig("hAuc_sig", "", nScore, -1, 1);
+    TH1D hAucBkg("hAuc_bkg", "", nScore, -1, 1);
 
     for (const Row& r : rows) {
         (r.sig ? hScoreSig : hScoreBkg).Fill(r.score, r.w);
+        (r.sig ? hAucSig : hAucBkg).Fill(r.score, r.wFlat);
         if (std::abs(r.mass - massPeak) < sigWindow) {
             (r.sig ? hSigWin : hBkgWin).Fill(r.score, r.w);
             if (!r.sig)
                 hBkgRows.Fill(r.score);
         }
     }
+
+    // ROC integral = P(signal score > background score), flat weights
+    double auc = 0.0;
+    {
+        const double sTot = hAucSig.Integral(), bTot = hAucBkg.Integral();
+        double sAb = 0.0;
+        for (int bin = nScore; bin >= 1; --bin) {
+            const double sb = hAucSig.GetBinContent(bin);
+            const double bb = hAucBkg.GetBinContent(bin);
+            if (sTot > 0 && bTot > 0)
+                auc += (bb / bTot) * (sAb + 0.5 * sb) / sTot;
+            sAb += sb;
+        }
+    }
+    std::cout << "ROC integral (test sample, flat weights): "
+              << std::setprecision(4) << auc << "\n";
 
     // sAbove[i] / bAbove[i] = window yield with score >= cut(i)
     std::vector<double> cutValue(nScore), sAbove(nScore), bAbove(nScore);
@@ -253,7 +311,10 @@ int main(int argc, char* argv[]) {
               << "No BDT cut:  S = " << sTotal << "  B = " << bTotal
               << "  S/B = " << sTotal / bTotal
               << "  S/sqrt(S+B) = " << significance(0) << "\n\n"
-              << "  eff_S   cut     bkg_rej        S          B        S/B   S/sqrt(S+B)\n";
+              << std::setw(7) << "eff_S" << std::setw(8) << "cut"
+              << std::setw(11) << "bkg_rej" << std::setw(14) << "S"
+              << std::setw(16) << "B" << std::setw(11) << "S/B"
+              << std::setw(13) << "S/sqrt(S+B)" << "\n";
 
     for (double target : {0.95, 0.90, 0.80, 0.70, 0.50, 0.30}) {
         int k = 0;
@@ -263,10 +324,10 @@ int main(int argc, char* argv[]) {
         std::cout << std::setw(7) << sAbove[k] / sTotal
                   << std::setw(8) << cutValue[k]
                   << std::setw(11) << 1.0 - bAbove[k] / bTotal
-                  << std::setw(10) << sAbove[k]
-                  << std::setw(11) << bAbove[k]
+                  << std::setw(14) << sAbove[k]
+                  << std::setw(16) << bAbove[k]
                   << std::setw(11) << (bAbove[k] > 0 ? sAbove[k] / bAbove[k] : 0)
-                  << std::setw(11) << significance(k) << "\n";
+                  << std::setw(13) << significance(k) << "\n";
     }
 
     std::cout << "\nBest cut (>= " << minBkgRows << " background rows): BDT > " << cutValue[best]
@@ -288,7 +349,11 @@ int main(int argc, char* argv[]) {
     TH1D hMassSigCut("hMass_sig_cut", ";M_{K#pi} [GeV/c^{2}];Yield",
                      nMass, massMin, massMax);
 
+    hMassBkgAll.Sumw2();
+    hMassBkgCut.Sumw2();
     double bkgAll = 0, bkgAllWin = 0, bkgCutSum = 0, bkgCutWin = 0;
+    double bkgCutSumW2 = 0;
+    long long bkgCutRows = 0;
     for (const Row& r : rows) {
         const bool inWin = std::abs(r.mass - massPeak) < sigWindow;
         const bool pass  = r.score >= cut;
@@ -302,6 +367,8 @@ int main(int argc, char* argv[]) {
             if (pass) {
                 hMassBkgCut.Fill(r.mass, r.w);
                 bkgCutSum += r.w;
+                bkgCutSumW2 += r.w * r.w;
+                ++bkgCutRows;
                 if (inWin) bkgCutWin += r.w;
             }
         }
@@ -311,7 +378,12 @@ int main(int argc, char* argv[]) {
               << "  background fraction inside the signal window: before cut "
               << std::setprecision(4) << (bkgAll > 0 ? bkgAllWin / bkgAll : 0)
               << ", after cut "
-              << (bkgCutSum > 0 ? bkgCutWin / bkgCutSum : 0) << "\n";
+              << (bkgCutSum > 0 ? bkgCutWin / bkgCutSum : 0) << "\n"
+              << "  background rows passing: " << bkgCutRows
+              << ", effective rows (sumW^2/sumW2): "
+              << std::setprecision(1)
+              << (bkgCutSumW2 > 0 ? bkgCutSum * bkgCutSum / bkgCutSumW2 : 0)
+              << "  (a few heavy low-pThat rows can dominate)\n";
 
     // -----------------------------
     // Output file and plots
@@ -375,14 +447,33 @@ int main(int argc, char* argv[]) {
         a->SetMinimum(0);
         a->SetMaximum(1.4 * std::max(a->GetMaximum(), b->GetMaximum()));
         TCanvas c("c3", "", 800, 600);
-        a->Draw("HIST");
-        b->Draw("HIST SAME");
+        a->Draw("E");
+        b->Draw("E SAME");
         TLegend leg(0.55, 0.75, 0.88, 0.88);
         leg.AddEntry(a, "Background, no cut", "l");
         leg.AddEntry(b, ("Background, BDT > " +
                          std::to_string(cut).substr(0, 5)).c_str(), "l");
         leg.Draw();
         c.SaveAs((stem + "_bkgmass.png").c_str());
+    }
+
+    // One summary line per run, for comparing configurations
+    // (e.g. smearing levels): data/tmva_summary.csv
+    {
+        const std::string csv = "data/tmva_summary.csv";
+        const bool isNew = gSystem->AccessPathName(csv.c_str());
+        std::ofstream f(csv, std::ios::app);
+        if (isNew)
+            f << "tag,method,events,lumi_pb,mass_peak,window,sigma_eff,"
+                 "S_nocut,B_nocut,signif_nocut,best_cut,S_best,B_best,"
+                 "signif_best,effS_best,bkgrej_best,auc\n";
+        f << std::setprecision(6) << tag.substr(1) << "," << method << ","
+          << events << "," << (hasXs ? lumiPb : 0.0) << "," << massPeak << ","
+          << sigWindow << "," << sigmaEff << "," << sTotal << "," << bTotal
+          << "," << significance(0) << "," << cutValue[best] << ","
+          << sAbove[best] << "," << bAbove[best] << ","
+          << significance(best) << "," << sAbove[best] / sTotal << ","
+          << 1.0 - bAbove[best] / bTotal << "," << auc << "\n";
     }
 
     out.Close();
