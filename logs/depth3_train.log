@@ -1,0 +1,17 @@
+Training rows: signal 3254, background 2948830
+Testing  rows: signal 3223, background 2942040
+<HEADER> DataSetInfo              : [ds_depth3] : Added class "Signal"
+                         : Add Tree Candidates of type Signal with 2952084 events
+                         : Add Tree Candidates of type Signal with 2945263 events
+<HEADER> DataSetInfo              : [ds_depth3] : Added class "Background"
+                         : Add Tree Candidates of type Background with 2952084 events
+                         : Add Tree Candidates of type Background with 2945263 events
+<HEADER> Factory                  : Booking method: BDT
+                         : 
+                         : Rebuilding Dataset ds_depth3
+                         : Building event vectors for type 0 Signal
+                         : Dataset[ds_depth3] :  create input formulas for tree Candidates
+                         : Building event vectors for type 1 Signal
+                         : Dataset[ds_depth3] :  create input formulas for tree Candidates
+                         : Building event vectors for type 0 Background
+                         : Dataset[ds_depth3] :  create input formulas for tree Candidates
