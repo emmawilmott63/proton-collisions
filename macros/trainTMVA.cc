@@ -25,6 +25,13 @@
 //   --ntrees=N          number of trees                       [400]
 //   --depth=N           max tree depth                        [3]
 //   --min-node=X        min node size, percent of events      [2.0]
+//   --train-weights=flat|xs
+//                       flat: train with "weight" only (every generated
+//                       event counts the same, so each pThat bin
+//                       contributes by its number of events).
+//                       xs: also multiply by xsWeight (physical mixture of
+//                       pThat bins; a few heavy low-pThat rows can dominate
+//                       and make training noisy).               [flat]
 //   --cut=EXPR          extra TCut on both classes, e.g. "pairPt>1.0"
 //   --vars=a,b,c        use exactly these branches   (see tmvaCommon.h)
 //   --drop=a,b          remove branches from the default list
@@ -52,6 +59,15 @@ int main(int argc, char* argv[]) {
     const std::string outName =
         getOption(argc, argv, "out", "data/tmva_training" + tag + ".root");
     const std::string extraCut = getOption(argc, argv, "cut", "");
+    const std::string trainWeights =
+        getOption(argc, argv, "train-weights", "flat");
+
+    if (trainWeights != "flat" && trainWeights != "xs") {
+        std::cerr << "--train-weights must be flat or xs\n";
+        return 1;
+    }
+    const std::string weightExpr =
+        (trainWeights == "xs") ? "weight*xsWeight" : "weight";
 
     const int    nTrees  = static_cast<int>(getNumber(argc, argv, "ntrees", 400));
     const int    depth   = static_cast<int>(getNumber(argc, argv, "depth", 3));
@@ -82,6 +98,11 @@ int main(int argc, char* argv[]) {
     input.GetObject("Candidates", cand);
     if (!cand) {
         std::cerr << "No TTree 'Candidates' in " << inputName << "\n";
+        return 1;
+    }
+    if (trainWeights == "xs" && !cand->GetBranch("xsWeight")) {
+        std::cerr << "No xsWeight branch: rebuild the candidates with the "
+                     "current buildtree\n";
         return 1;
     }
     for (const std::string& v : vars)
@@ -135,8 +156,8 @@ int main(int argc, char* argv[]) {
     loader->AddBackgroundTree(trainTree, 1.0, TMVA::Types::kTraining);
     loader->AddBackgroundTree(testTree,  1.0, TMVA::Types::kTesting);
 
-    loader->SetSignalWeightExpression("weight");
-    loader->SetBackgroundWeightExpression("weight");
+    loader->SetSignalWeightExpression(weightExpr.c_str());
+    loader->SetBackgroundWeightExpression(weightExpr.c_str());
 
     TCut sigCut("isSignal>0.5");
     TCut bkgCut("isSignal<0.5");
@@ -181,6 +202,7 @@ int main(int argc, char* argv[]) {
               << "Input:    " << inputName << "\n"
               << "Method:   " << method << "  (" << nTrees << " trees, depth "
               << depth << ")\n"
+              << "Training weights: " << weightExpr << "\n"
               << "Variables (" << vars.size() << "):";
     for (const std::string& v : vars) std::cout << " " << v;
     std::cout << "\nWeights:  " << dataset << "/weights/TMVAClassification_"

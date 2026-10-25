@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -38,7 +39,14 @@
 //   --seed=N              random seed                        [12345]
 //
 // Branches written:
-//   label / bookkeeping : event, isSignal, weight
+//   label / bookkeeping : event, isSignal, weight, xsWeight
+//                         weight   = 1 (signal) or 1/bkg-keep (background)
+//                         xsWeight = sigmaGen / nGenerated of the generator
+//                                    run the event came from [mb per event],
+//                                    read from RunInfo via runSeed. Needed
+//                                    when pThat bins are merged with hadd.
+//                                    1 if RunInfo or runSeed is missing.
+//                         Physical yield of a row = weight * xsWeight * L.
 //   NOT for training    : mass   (training on it would sculpt the peak)
 //
 //   daughter / pair     : ptK, ptPi, ptHard, ptSoft, ptSum, ptBalance,
@@ -215,6 +223,10 @@ int main(int argc, char* argv[]) {
     // Open input
     // -----------------------------
     TFile input(inputName.c_str(), "READ");
+    if (input.IsZombie()) {
+        std::cerr << "Could not open " << inputName << "\n";
+        return 1;
+    }
 
     TTree* tree = nullptr;
     input.GetObject("Particles", tree);
@@ -239,7 +251,48 @@ int main(int argc, char* argv[]) {
     tree->SetBranchAddress("py", &py);
     tree->SetBranchAddress("pz", &pz);
     tree->SetBranchAddress("energy", &energy);
+    if (!tree->GetBranch("d0Parent")) {
+        std::cerr << "Input has no d0Parent branch; regenerate it with the "
+                     "current generator.\n";
+        return 1;
+    }
     tree->SetBranchAddress("d0Parent", &d0Parent);
+
+    // Per-run cross-section weights (sigmaGen / nGenerated, mb per event),
+    // exactly as in reconstructD0.cc. Each pThat bin is one run, identified
+    // by its seed (runSeed branch in Particles, seed branch in RunInfo).
+    std::map<int, double> xsPerEvent;
+    int runSeedVal = 0;
+    bool haveRunWeights = false;
+    {
+        TTree* runInfo = nullptr;
+        input.GetObject("RunInfo", runInfo);
+        if (runInfo && tree->GetBranch("runSeed")) {
+            int rSeed = 0;
+            long long rNGen = 0;
+            double rSigma = 0.0;
+            runInfo->SetBranchAddress("seed", &rSeed);
+            runInfo->SetBranchAddress("nGenerated", &rNGen);
+            runInfo->SetBranchAddress("sigmaGen_mb", &rSigma);
+            for (Long64_t r = 0; r < runInfo->GetEntries(); ++r) {
+                runInfo->GetEntry(r);
+                if (rNGen <= 0 || rSigma < 0.0) {
+                    std::cerr << "Warning: invalid run metadata for seed "
+                              << rSeed << "\n";
+                    continue;
+                }
+                xsPerEvent[rSeed] = rSigma / rNGen;
+                std::cout << "Run seed " << rSeed << ": sigmaGen = " << rSigma
+                          << " mb, nGenerated = " << rNGen
+                          << ", xsWeight = " << xsPerEvent[rSeed] << " mb\n";
+            }
+            tree->SetBranchAddress("runSeed", &runSeedVal);
+            haveRunWeights = !xsPerEvent.empty();
+        }
+        if (!haveRunWeights)
+            std::cerr << "Warning: no RunInfo / runSeed found; xsWeight = 1 "
+                         "for every row (fine only for a single run).\n";
+    }
 
     // -----------------------------
     // Output tree
@@ -249,6 +302,7 @@ int main(int argc, char* argv[]) {
 
     int   b_event = 0, b_isSignal = 0;
     float b_weight = 1, b_mass = 0;
+    double b_xsWeight = 1.0;
 
     // daughters / pair
     float b_ptK = 0, b_ptPi = 0, b_ptHard = 0, b_ptSoft = 0, b_ptSum = 0;
@@ -272,6 +326,7 @@ int main(int argc, char* argv[]) {
     out.Branch("event", &b_event);
     out.Branch("isSignal", &b_isSignal);
     out.Branch("weight", &b_weight);
+    out.Branch("xsWeight", &b_xsWeight);
     out.Branch("mass", &b_mass);
 
     out.Branch("ptK", &b_ptK);
@@ -314,6 +369,7 @@ int main(int argc, char* argv[]) {
     long long nSignal = 0;
     long long nBackground = 0;
     long long nEvents = 0;
+    long long nNoWeight = 0;
     long long nSameJetSig = 0, nSameJetBkg = 0;
 
     // -----------------------------
@@ -324,6 +380,16 @@ int main(int argc, char* argv[]) {
     for (Long64_t iEvent = 0; iEvent < nEntries; ++iEvent) {
 
         tree->GetEntry(iEvent);
+
+        double xsW = 1.0;
+        if (haveRunWeights) {
+            const auto it = xsPerEvent.find(runSeedVal);
+            if (it == xsPerEvent.end()) {
+                ++nNoWeight;
+                continue;
+            }
+            xsW = it->second;
+        }
         ++nEvents;
 
         const size_t n = pid->size();
@@ -349,9 +415,13 @@ int main(int argc, char* argv[]) {
         // jetOf[k] = index into `jets` of the jet containing particle k,
         // or -1 if it is in no jet above jetPtMin
         std::vector<int> jetOf(n, -1);
-        for (size_t jj = 0; jj < jets.size(); ++jj)
-            for (const auto& c : jets[jj].constituents())
+        std::vector<double> jetNConstOf(jets.size(), 0.0);
+        for (size_t jj = 0; jj < jets.size(); ++jj) {
+            const std::vector<fastjet::PseudoJet> cons = jets[jj].constituents();
+            jetNConstOf[jj] = static_cast<double>(cons.size());
+            for (const auto& c : cons)
                 jetOf[c.user_index()] = static_cast<int>(jj);
+        }
 
         // Transverse momentum and direction of every particle
         // (unsmeared; used for the isolation sums and event shapes)
@@ -547,8 +617,7 @@ int main(int argc, char* argv[]) {
                     jetPt     = jets[refJet].pt();
                     jetEta    = jets[refJet].eta();
                     jetMass   = jets[refJet].m();
-                    jetNConst = static_cast<double>(
-                        jets[refJet].constituents().size());
+                    jetNConst = jetNConstOf[refJet];
                     if (jetPt > 0)
                         zJet = pairPt / jetPt;
                 }
@@ -583,6 +652,7 @@ int main(int argc, char* argv[]) {
                 b_event        = static_cast<int>(iEvent);
                 b_isSignal     = isSignal ? 1 : 0;
                 b_weight       = static_cast<float>(weight);
+                b_xsWeight     = xsW;
                 b_mass         = static_cast<float>(mass);
 
                 b_ptK          = static_cast<float>(K.pt);
@@ -644,6 +714,10 @@ int main(int argc, char* argv[]) {
               << "Input:              " << inputName << "\n"
               << "Output:             " << outName << "\n"
               << "Events read:        " << nEvents << "\n"
+              << "Run weights:        "
+              << (haveRunWeights ? std::to_string(xsPerEvent.size()) + " runs"
+                                 : std::string("none (xsWeight = 1)"))
+              << ", events skipped for missing weight: " << nNoWeight << "\n"
               << "Preselection:       daughter pT > " << minDaughterPt
               << (maxDaughterPt < 1e8
                       ? ", < " + std::to_string(maxDaughterPt) : std::string())

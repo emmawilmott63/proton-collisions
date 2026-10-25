@@ -33,16 +33,21 @@
 //   --mass-peak=X       D0 mass for the signal window         [1.86484]
 //   --sig-window=X      half-width of the signal window       [0.05]
 //   --mass-min=X --mass-max=X   mass histogram range          [1.6, 2.1]
-//   --min-bkg=X         ignore cuts leaving less background than this
-//                       (weighted yield, full-sample units)   [10]
+//   --lumi-pb=X         integrated luminosity for the yields, in pb^-1
+//                       (needs xsWeight in the candidate tree) [1]
+//   --min-bkg-rows=N    ignore cuts leaving fewer than N unweighted
+//                       background rows in the window (avoids picking a
+//                       cut in a statistical fluctuation)      [20]
 //   --cut=X             use this BDT cut for the mass plots instead of the
 //                       best-significance cut
 //   --vars / --drop     MUST match the options used in trainTMVA
 //   --out=PATH          histograms   [data/bdt_response<tag>.root]
 //
-// Yields are weighted counts in the signal window and, for --events=test,
-// multiplied by 2 so they refer to the full generated sample.
-// S/sqrt(S+B) uses these generator-level counts, not a cross section.
+// Yields are expected counts in the signal window for the chosen
+// luminosity: weight * xsWeight [mb] * L [mb^-1]. For --events=test they
+// are multiplied by 2 because only half the events are scored.
+// If the candidate tree has no xsWeight, yields are plain weighted counts
+// of the generated sample.
 //
 // Mass-sculpting check: the BDT never sees "mass", but mass is a function
 // of ptK, ptPi, etaK, etaPi, dPhi (all usable inputs), so the BDT can learn
@@ -73,7 +78,8 @@ int main(int argc, char* argv[]) {
     const double sigWindow = getNumber(argc, argv, "sig-window", 0.05);
     const double massMin   = getNumber(argc, argv, "mass-min", 1.6);
     const double massMax   = getNumber(argc, argv, "mass-max", 2.1);
-    const double minBkg    = getNumber(argc, argv, "min-bkg", 10.0);
+    const double lumiPb    = getNumber(argc, argv, "lumi-pb", 1.0);
+    const double minBkgRows = getNumber(argc, argv, "min-bkg-rows", 20.0);
     const double fixedCut  = getNumber(argc, argv, "cut", -999.0);
 
     if (events != "test" && events != "all") {
@@ -115,6 +121,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<float> vals(vars.size(), 0.f);
     float b_mass = 0, b_weight = 1;
+    double b_xsWeight = 1.0;
     int   b_event = 0, b_isSignal = 0;
 
     for (size_t i = 0; i < vars.size(); ++i)
@@ -126,6 +133,15 @@ int main(int argc, char* argv[]) {
     tree->SetBranchAddress("weight", &b_weight);
     tree->SetBranchAddress("event", &b_event);
     tree->SetBranchAddress("isSignal", &b_isSignal);
+
+    // 1 pb^-1 = 1e9 mb^-1 (xsWeight is in mb per generated event)
+    const bool hasXs = tree->GetBranch("xsWeight") != nullptr;
+    const double lumiMb = lumiPb * 1.0e9;
+    if (hasXs)
+        tree->SetBranchAddress("xsWeight", &b_xsWeight);
+    else
+        std::cerr << "Warning: no xsWeight branch; yields are generated-"
+                     "sample counts, not luminosity-scaled.\n";
 
     // -----------------------------
     // TMVA reader: same variables, same order, same spectator as training
@@ -139,7 +155,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     // Score every selected candidate
     // -----------------------------
-    struct Row { float score, mass, w; bool sig; };
+    struct Row { float score, mass; double w; bool sig; };
     std::vector<Row> rows;
 
     const Long64_t nEntries = tree->GetEntries();
@@ -147,8 +163,11 @@ int main(int argc, char* argv[]) {
         tree->GetEntry(i);
         if (events == "test" && (b_event % 2) != 1)
             continue;
+        double w = b_weight;
+        if (hasXs)
+            w *= b_xsWeight * lumiMb;
         rows.push_back({static_cast<float>(reader.EvaluateMVA(method.c_str())),
-                        b_mass, b_weight, b_isSignal == 1});
+                        b_mass, w, b_isSignal == 1});
     }
     std::cout << "Scored " << rows.size() << " candidates (" << events
               << " events)\n";
@@ -165,21 +184,29 @@ int main(int argc, char* argv[]) {
                    nScore, -1, 1);
     TH1D hSigWin("hScoreWindow_sig", "signal in window", nScore, -1, 1);
     TH1D hBkgWin("hScoreWindow_bkg", "background in window", nScore, -1, 1);
+    TH1D hBkgRows("hScoreWindow_bkg_rows",
+                  "background rows in window (unweighted)", nScore, -1, 1);
 
     for (const Row& r : rows) {
         (r.sig ? hScoreSig : hScoreBkg).Fill(r.score, r.w);
-        if (std::abs(r.mass - massPeak) < sigWindow)
+        if (std::abs(r.mass - massPeak) < sigWindow) {
             (r.sig ? hSigWin : hBkgWin).Fill(r.score, r.w);
+            if (!r.sig)
+                hBkgRows.Fill(r.score);
+        }
     }
 
     // sAbove[i] / bAbove[i] = window yield with score >= cut(i)
     std::vector<double> cutValue(nScore), sAbove(nScore), bAbove(nScore);
+    std::vector<double> bRowsAbove(nScore);
     {
-        double s = 0, b = 0;
+        double s = 0, b = 0, nb = 0;
         for (int bin = nScore; bin >= 1; --bin) {
             s += hSigWin.GetBinContent(bin);
             b += hBkgWin.GetBinContent(bin);
+            nb += hBkgRows.GetBinContent(bin);
             const int i = bin - 1;
+            bRowsAbove[i] = nb;
             cutValue[i] = hSigWin.GetXaxis()->GetBinLowEdge(bin);
             sAbove[i] = s * scale;
             bAbove[i] = b * scale;
@@ -201,7 +228,7 @@ int main(int argc, char* argv[]) {
 
     int best = 0;
     for (int i = 0; i < nScore; ++i)
-        if (bAbove[i] >= minBkg && significance(i) > significance(best))
+        if (bRowsAbove[i] >= minBkgRows && significance(i) > significance(best))
             best = i;
 
     int chosen = best;
@@ -219,6 +246,10 @@ int main(int argc, char* argv[]) {
     std::cout << std::fixed << std::setprecision(3)
               << "\nSignal window: " << massPeak << " +- " << sigWindow
               << " GeV/c^2\n"
+              << "Yields: " << (hasXs ? "expected counts for L = " +
+                                   std::to_string(lumiPb) + " pb^-1"
+                                 : std::string("generated-sample counts"))
+              << "\n"
               << "No BDT cut:  S = " << sTotal << "  B = " << bTotal
               << "  S/B = " << sTotal / bTotal
               << "  S/sqrt(S+B) = " << significance(0) << "\n\n"
@@ -238,7 +269,7 @@ int main(int argc, char* argv[]) {
                   << std::setw(11) << significance(k) << "\n";
     }
 
-    std::cout << "\nBest cut (B >= " << minBkg << "): BDT > " << cutValue[best]
+    std::cout << "\nBest cut (>= " << minBkgRows << " background rows): BDT > " << cutValue[best]
               << "  S/sqrt(S+B) = " << significance(best)
               << "  (eff_S " << sAbove[best] / sTotal
               << ", bkg rejection " << 1.0 - bAbove[best] / bTotal << ")\n";
@@ -290,6 +321,7 @@ int main(int argc, char* argv[]) {
     hScoreBkg.Write();
     hSigWin.Write();
     hBkgWin.Write();
+    hBkgRows.Write();
     hMassBkgAll.Write();
     hMassBkgCut.Write();
     hMassSigAll.Write();
@@ -319,7 +351,7 @@ int main(int argc, char* argv[]) {
     {   // S/sqrt(S+B) vs cut
         std::vector<double> x, y;
         for (int i = 0; i < nScore; ++i)
-            if (bAbove[i] >= minBkg) {
+            if (bRowsAbove[i] >= minBkgRows) {
                 x.push_back(cutValue[i]);
                 y.push_back(significance(i));
             }
