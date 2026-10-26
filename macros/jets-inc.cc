@@ -10,8 +10,9 @@
 // Purpose: realistic signal-to-background for evaluating the analysis.
 //
 // Usage: ./jets-inc [nEvents] [seed] [outFile] [--pthat-min=X] [--pthat-max=X]
-//   defaults: 100000  54321  data/d0_inclusive.root  pTHat 5 - 10 GeV/c
-// (different default seed from the charm sample, so they are independent)
+//   defaults: 5000000  54321  data/d0_inclusive.root  pTHat 5 - 100 GeV/c
+// (different default seed from the charm sample, so they are independent;
+//  scripts/run_generation.sh passes explicit values for every pTHat bin)
 
 int main(int argc, char* argv[]) {
 

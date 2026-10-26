@@ -42,7 +42,7 @@
 //   --seed=N              random seed for the smearing       [12345]
 //   --pt-edges=a,b,c,...  also make OS - SS plots in bins of pair pT,
 //                         e.g. --pt-edges=0,1,2,3,5,8
-//   --zoom-min=X          lower edge of the zoomed plots     [1.0]  GeV/c^2
+//   --zoom-min=X          lower edge of the zoomed plots     [1.6]  GeV/c^2
 //   --zoom-max=X          upper edge of the zoomed plots     [2.2]  GeV/c^2
 //
 // Every K pi candidate plot is made twice: full range (0 - 3) and zoomed
@@ -210,6 +210,11 @@ int main(int argc, char* argv[]) {
     tree->SetBranchAddress("px", &px);
     tree->SetBranchAddress("py", &py);
     tree->SetBranchAddress("pz", &pz);
+    if (!tree->GetBranch("d0Parent")) {
+        std::cerr << "Input has no d0Parent branch; regenerate it with the "
+                     "current generator.\n";
+        return 1;
+    }
     tree->SetBranchAddress("d0Parent", &d0Parent);
 
     // -----------------------------

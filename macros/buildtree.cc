@@ -171,6 +171,12 @@ void transverseShapes(const std::vector<double>& vpx,
 
 int main(int argc, char* argv[]) {
 
+    if (!checkOptions(argc, argv,
+            {"out", "tag", "min-daughter-pt", "max-daughter-pt",
+             "min-pair-pt", "max-pair-pt", "max-eta", "mass-min", "mass-max",
+             "smear-pt", "smear-eta", "smear-phi", "bkg-keep", "seed"}))
+        return 1;
+
     const std::string inputName =
         getInputFile(argc, argv, "data/d0_inclusive.root");
     const std::string tag = getTag(argc, argv, inputName);

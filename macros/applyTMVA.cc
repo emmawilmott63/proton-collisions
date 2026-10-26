@@ -2,7 +2,7 @@
 
 #include "TCanvas.h"
 #include "TFile.h"
-#include "TGraph.h"
+#include "TGraphErrors.h"
 #include "TH1D.h"
 #include "TLegend.h"
 #include "TROOT.h"
@@ -17,6 +17,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -29,9 +30,13 @@
 // Options (defaults in brackets):
 //   --method=BDT|BDTG   which trained method                  [BDT]
 //   --dataset=NAME      TMVA dataset / weight directory       [dataset]
-//   --events=test|all   test = ODD event numbers only (never seen in
-//                       training); "all" includes training events and is
-//                       over-optimistic                       [test]
+//   --events=test|train|all
+//                       test  = ODD event numbers only (never seen in
+//                               training)
+//                       train = EVEN event numbers (the training sample;
+//                               use it to check for overtraining by
+//                               comparing the ROC integral with test)
+//                       all   = everything (over-optimistic)  [test]
 //   --sig-window=X      half-width of the signal window       [auto]
 //   --mass-peak=X       centre of the signal window           [auto]
 //   --window-nsigma=X   auto window = X * robust sigma of the signal
@@ -71,6 +76,12 @@ int main(int argc, char* argv[]) {
     // they are destroyed); they are written explicitly to the output file.
     TH1::AddDirectory(kFALSE);
 
+    if (!checkOptions(argc, argv,
+            {"method", "dataset", "events", "out", "tag", "mass-peak",
+             "sig-window", "window-nsigma", "min-window", "mass-min",
+             "mass-max", "lumi-pb", "min-bkg-rows", "cut", "vars", "drop"}))
+        return 1;
+
     const std::string inputName =
         getInputFile(argc, argv, "data/candidates_inclusive.root");
     const std::string tag     = getTag(argc, argv, inputName);
@@ -92,14 +103,15 @@ int main(int argc, char* argv[]) {
     const double minBkgRows = getNumber(argc, argv, "min-bkg-rows", 20.0);
     const double fixedCut  = getNumber(argc, argv, "cut", -999.0);
 
-    if (events != "test" && events != "all") {
-        std::cerr << "--events must be test or all\n";
+    if (events != "test" && events != "train" && events != "all") {
+        std::cerr << "--events must be test, train or all\n";
         return 1;
     }
-    if (events == "all")
-        std::cerr << "Warning: --events=all includes the training sample; "
-                     "performance will look better than it is.\n";
-    const double scale = (events == "test") ? 2.0 : 1.0;
+    if (events != "test")
+        std::cerr << "Warning: --events=" << events << " includes training "
+                     "events; performance will look better than it is.\n";
+    // test and train each hold half of the events, so double the yields
+    const double scale = (events == "all") ? 1.0 : 2.0;
 
     const std::vector<std::string> vars = getTMVAVars(argc, argv);
 
@@ -173,6 +185,8 @@ int main(int argc, char* argv[]) {
         tree->GetEntry(i);
         if (events == "test" && (b_event % 2) != 1)
             continue;
+        if (events == "train" && (b_event % 2) != 0)
+            continue;
         double w = b_weight;
         if (hasXs)
             w *= b_xsWeight * lumiMb;
@@ -227,6 +241,9 @@ int main(int argc, char* argv[]) {
     // flat-weight response (training weights, all masses) for the ROC integral
     TH1D hAucSig("hAuc_sig", "", nScore, -1, 1);
     TH1D hAucBkg("hAuc_bkg", "", nScore, -1, 1);
+    // errors from the Monte Carlo weights (a few heavy rows dominate)
+    hSigWin.Sumw2();
+    hBkgWin.Sumw2();
 
     for (const Row& r : rows) {
         (r.sig ? hScoreSig : hScoreBkg).Fill(r.score, r.w);
@@ -256,15 +273,19 @@ int main(int argc, char* argv[]) {
 
     // sAbove[i] / bAbove[i] = window yield with score >= cut(i)
     std::vector<double> cutValue(nScore), sAbove(nScore), bAbove(nScore);
-    std::vector<double> bRowsAbove(nScore);
+    std::vector<double> bRowsAbove(nScore), sErr2(nScore), bErr2(nScore);
     {
-        double s = 0, b = 0, nb = 0;
+        double s = 0, b = 0, nb = 0, se2 = 0, be2 = 0;
         for (int bin = nScore; bin >= 1; --bin) {
             s += hSigWin.GetBinContent(bin);
             b += hBkgWin.GetBinContent(bin);
             nb += hBkgRows.GetBinContent(bin);
+            se2 += hSigWin.GetBinError(bin) * hSigWin.GetBinError(bin);
+            be2 += hBkgWin.GetBinError(bin) * hBkgWin.GetBinError(bin);
             const int i = bin - 1;
             bRowsAbove[i] = nb;
+            sErr2[i] = se2 * scale * scale;
+            bErr2[i] = be2 * scale * scale;
             cutValue[i] = hSigWin.GetXaxis()->GetBinLowEdge(bin);
             sAbove[i] = s * scale;
             bAbove[i] = b * scale;
@@ -282,6 +303,18 @@ int main(int argc, char* argv[]) {
     auto significance = [&](int i) {
         const double s = sAbove[i], b = bAbove[i];
         return (s + b > 0) ? s / std::sqrt(s + b) : 0.0;
+    };
+
+    // Monte Carlo statistical error of S/sqrt(S+B), propagated from the
+    // summed squared weights of the signal and background in the window
+    auto significanceErr = [&](int i) {
+        const double s = sAbove[i], b = bAbove[i], d = s + b;
+        if (d <= 0)
+            return 0.0;
+        const double d15 = std::pow(d, 1.5);
+        const double dS = (s + 2.0 * b) / (2.0 * d15);
+        const double dB = -s / (2.0 * d15);
+        return std::sqrt(dS * dS * sErr2[i] + dB * dB * bErr2[i]);
     };
 
     int best = 0;
@@ -310,7 +343,8 @@ int main(int argc, char* argv[]) {
               << "\n"
               << "No BDT cut:  S = " << sTotal << "  B = " << bTotal
               << "  S/B = " << sTotal / bTotal
-              << "  S/sqrt(S+B) = " << significance(0) << "\n\n"
+              << "  S/sqrt(S+B) = " << significance(0) << " +- "
+              << significanceErr(0) << "\n\n"
               << std::setw(7) << "eff_S" << std::setw(8) << "cut"
               << std::setw(11) << "bkg_rej" << std::setw(14) << "S"
               << std::setw(16) << "B" << std::setw(11) << "S/B"
@@ -331,7 +365,8 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "\nBest cut (>= " << minBkgRows << " background rows): BDT > " << cutValue[best]
-              << "  S/sqrt(S+B) = " << significance(best)
+              << "  S/sqrt(S+B) = " << significance(best) << " +- "
+              << significanceErr(best) << " (MC stat.)"
               << "  (eff_S " << sAbove[best] / sTotal
               << ", bkg rejection " << 1.0 - bAbove[best] / bTotal << ")\n";
     if (fixedCut > -900)
@@ -421,18 +456,22 @@ int main(int argc, char* argv[]) {
     }
 
     {   // S/sqrt(S+B) vs cut
-        std::vector<double> x, y;
+        std::vector<double> x, y, ey;
         for (int i = 0; i < nScore; ++i)
             if (bRowsAbove[i] >= minBkgRows) {
                 x.push_back(cutValue[i]);
                 y.push_back(significance(i));
+                ey.push_back(significanceErr(i));
             }
         if (!x.empty()) {
-            TGraph g(static_cast<int>(x.size()), x.data(), y.data());
+            TGraphErrors g(static_cast<int>(x.size()), x.data(), y.data(),
+                           nullptr, ey.data());
             g.SetTitle(";BDT cut;S/#sqrt{S+B} in signal window");
             g.SetLineWidth(2);
+            g.SetFillColorAlpha(kGray + 1, 0.4);   // band = MC statistical error
             TCanvas c("c2", "", 800, 600);
-            g.Draw("AL");
+            g.Draw("A3");
+            g.Draw("LX SAME");
             c.SaveAs((stem + "_significance.png").c_str());
         }
     }
@@ -457,23 +496,26 @@ int main(int argc, char* argv[]) {
         c.SaveAs((stem + "_bkgmass.png").c_str());
     }
 
-    // One summary line per run, for comparing configurations
-    // (e.g. smearing levels): data/tmva_summary.csv
+    // One summary line per (tag, method), for comparing configurations
+    // (e.g. smearing levels): data/tmva_summary.csv. Re-running the same
+    // tag and method replaces its row. For an overtraining check give the
+    // --events=train run its own --tag (e.g. --tag=smear0p03_train) so it
+    // does not replace the test row.
     {
-        const std::string csv = "data/tmva_summary.csv";
-        const bool isNew = gSystem->AccessPathName(csv.c_str());
-        std::ofstream f(csv, std::ios::app);
-        if (isNew)
-            f << "tag,method,events,lumi_pb,mass_peak,window,sigma_eff,"
-                 "S_nocut,B_nocut,signif_nocut,best_cut,S_best,B_best,"
-                 "signif_best,effS_best,bkgrej_best,auc\n";
-        f << std::setprecision(6) << tag.substr(1) << "," << method << ","
-          << events << "," << (hasXs ? lumiPb : 0.0) << "," << massPeak << ","
-          << sigWindow << "," << sigmaEff << "," << sTotal << "," << bTotal
-          << "," << significance(0) << "," << cutValue[best] << ","
-          << sAbove[best] << "," << bAbove[best] << ","
-          << significance(best) << "," << sAbove[best] / sTotal << ","
-          << 1.0 - bAbove[best] / bTotal << "," << auc << "\n";
+        std::ostringstream row;
+        row << std::setprecision(6) << tag.substr(1) << "," << method << ","
+            << events << "," << (hasXs ? lumiPb : 0.0) << "," << massPeak
+            << "," << sigWindow << "," << sigmaEff << "," << sTotal << ","
+            << bTotal << "," << significance(0) << "," << cutValue[best]
+            << "," << sAbove[best] << "," << bAbove[best] << ","
+            << significance(best) << "," << significanceErr(best) << ","
+            << sAbove[best] / sTotal << "," << 1.0 - bAbove[best] / bTotal
+            << "," << auc;
+        upsertCsvRow("data/tmva_summary.csv",
+            "tag,method,events,lumi_pb,mass_peak,window,sigma_eff,S_nocut,"
+            "B_nocut,signif_nocut,best_cut,S_best,B_best,signif_best,"
+            "signif_best_err,effS_best,bkgrej_best,auc",
+            row.str(), 2);
     }
 
     out.Close();

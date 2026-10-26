@@ -51,6 +51,11 @@
 
 int main(int argc, char* argv[]) {
 
+    if (!checkOptions(argc, argv,
+            {"method", "ntrees", "depth", "min-node", "train-weights", "cut",
+             "vars", "drop", "dataset", "out", "tag"}))
+        return 1;
+
     const std::string inputName =
         getInputFile(argc, argv, "data/candidates_inclusive.root");
     const std::string tag     = getTag(argc, argv, inputName);

@@ -1,12 +1,31 @@
 #!/bin/bash
 
-# Usage:
-# ./scripts/run_generation.sh inc 10000 2
-# Arguments: sample type, events per bin, parallel jobs
+# Generate pThat-binned samples in parallel and merge them with hadd.
+#
+# Usage (from the project root):
+#   ./scripts/run_generation.sh [inc|charm] [events_per_bin] [parallel_jobs]
+# Example:
+#   ./scripts/run_generation.sh inc 1000000 2
+#
+# Optional environment variables:
+#   EDGES="5 10 20 40 60 100"     pThat bin edges in GeV/c (default shown)
+#   EVENTS_PER_BIN="5000000 2000000 1000000 1000000 1000000"
+#                                  one entry per bin; overrides events_per_bin
+#                                  (the 5-10 bin carries ~97% of the cross
+#                                  section, so it limits the yield precision)
+#   SEED_BASE=51000               bin number i (1, 2, ...) uses seed SEED_BASE+i
+#   FORCE=1                       regenerate bins that already finished
+#
+# A bin that finished successfully leaves a <file>.ok marker and is skipped
+# on the next run (so an interrupted job can be resumed). Use FORCE=1 or
+# change EDGES / EVENTS / SEED_BASE together with FORCE=1 to redo it.
 
 SAMPLE=${1:-inc}
 NEVENTS=${2:-10000}
 MAX_JOBS=${3:-2}
+
+EDGES=${EDGES:-"5 10 20 40 60 100"}
+SEED_BASE=${SEED_BASE:-51000}
 
 if [ "$SAMPLE" = "inc" ]; then
     EXE="./jets-inc"
@@ -25,19 +44,51 @@ if [ ! -x "$EXE" ]; then
     exit 1
 fi
 
+if ! command -v hadd > /dev/null 2>&1; then
+    echo "Error: hadd not found (is ROOT set up in this shell?)."
+    exit 1
+fi
+
+read -r -a EDGE_ARR <<< "$EDGES"
+NBINS=$(( ${#EDGE_ARR[@]} - 1 ))
+if [ "$NBINS" -lt 1 ]; then
+    echo "Error: EDGES needs at least two values."
+    exit 1
+fi
+
+if [ -n "$EVENTS_PER_BIN" ]; then
+    read -r -a EV_ARR <<< "$EVENTS_PER_BIN"
+    if [ "${#EV_ARR[@]}" -ne "$NBINS" ]; then
+        echo "Error: EVENTS_PER_BIN has ${#EV_ARR[@]} entries but there are $NBINS bins."
+        exit 1
+    fi
+else
+    EV_ARR=()
+    for ((b = 0; b < NBINS; b++)); do
+        EV_ARR+=("$NEVENTS")
+    done
+fi
+
 mkdir -p data logs
 
 run_bin() {
     MIN=$1
     MAX=$2
     SEED=$3
+    N=$4
 
     OUT="data/${PREFIX}_${MIN}_${MAX}.root"
     LOG="logs/${PREFIX}_${MIN}_${MAX}.log"
 
-    echo "Starting pThat ${MIN}-${MAX} GeV..."
+    if [ -z "$FORCE" ] && [ -s "$OUT" ] && [ -f "${OUT}.ok" ]; then
+        echo "Skipping pThat ${MIN}-${MAX} GeV (already done; FORCE=1 to redo)."
+        return 0
+    fi
 
-    "$EXE" "$NEVENTS" "$SEED" "$OUT" \
+    rm -f "${OUT}.ok"
+    echo "Starting pThat ${MIN}-${MAX} GeV: ${N} events, seed ${SEED}..."
+
+    "$EXE" "$N" "$SEED" "$OUT" \
         "--pthat-min=$MIN" \
         "--pthat-max=$MAX" \
         > "$LOG" 2>&1
@@ -49,23 +100,24 @@ run_bin() {
         return 1
     fi
 
+    touch "${OUT}.ok"
     echo "Finished pThat ${MIN}-${MAX} GeV."
 }
 
 # Run each bin in the background, limiting concurrency.
-PIDS=""
+FILES=()
+PIDS=()
 
-for BIN in "5 10 51001" "10 20 51002" "20 40 51003" \
-           "40 60 51004" "60 100 51005"; do
+for ((b = 0; b < NBINS; b++)); do
+    MIN=${EDGE_ARR[$b]}
+    MAX=${EDGE_ARR[$((b + 1))]}
+    SEED=$((SEED_BASE + b + 1))
 
-    set -- $BIN
-    MIN=$1
-    MAX=$2
-    SEED=$3
+    FILES+=("data/${PREFIX}_${MIN}_${MAX}.root")
 
-    run_bin "$MIN" "$MAX" "$SEED" &
-    PIDS="$PIDS $!"
-    
+    run_bin "$MIN" "$MAX" "$SEED" "${EV_ARR[$b]}" &
+    PIDS+=($!)
+
     # Wait when we've reached the parallel-job limit.
     while [ "$(jobs -rp | wc -l | tr -d ' ')" -ge "$MAX_JOBS" ]; do
         sleep 1
@@ -74,7 +126,7 @@ done
 
 # Wait for all remaining jobs.
 FAILED=0
-for PID in $PIDS; do
+for PID in "${PIDS[@]}"; do
     if ! wait "$PID"; then
         FAILED=1
     fi
@@ -85,13 +137,9 @@ if [ "$FAILED" -ne 0 ]; then
     exit 1
 fi
 
+MERGED="data/${PREFIX}_${EDGE_ARR[0]}_${EDGE_ARR[$NBINS]}.root"
+
 echo "Merging ROOT files..."
+hadd -f "$MERGED" "${FILES[@]}" || { echo "hadd failed."; exit 1; }
 
-hadd -f "data/${PREFIX}_5_100.root" \
-    "data/${PREFIX}_5_10.root" \
-    "data/${PREFIX}_10_20.root" \
-    "data/${PREFIX}_20_40.root" \
-    "data/${PREFIX}_40_60.root" \
-    "data/${PREFIX}_60_100.root"
-
-echo "Done: data/${PREFIX}_5_100.root"
+echo "Done: $MERGED"
