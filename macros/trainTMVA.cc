@@ -248,7 +248,7 @@ int main(int argc, char* argv[]) {
     }
 
     gSystem->mkdir("data", true);
-    gSystem->mkdir((dataset + "/weights").c_str(), true);
+    gSystem->mkdir(("weight/" + dataset + "/weights").c_str(), true);
 
     // -----------------------------
     // Read candidates, split by event parity (trees live in memory)
@@ -296,7 +296,7 @@ int main(int argc, char* argv[]) {
     // Record the configuration next to the weights
     // -----------------------------
     {
-        std::ofstream cfg(dataset + "/train_config.txt");
+        std::ofstream cfg("weight/" + dataset + "/train_config.txt");
         cfg << "command:";
         for (int i = 0; i < argc; ++i)
             cfg << " " << argv[i];
@@ -330,7 +330,8 @@ int main(int argc, char* argv[]) {
     TMVA::Factory factory("TMVAClassification", outFile,
         "!V:!Silent:!Color:!DrawProgressBar:AnalysisType=Classification");
 
-    TMVA::DataLoader* loader = new TMVA::DataLoader(dataset);
+    const std::string tmvaDataset = "weight/" + dataset;
+    TMVA::DataLoader* loader = new TMVA::DataLoader(tmvaDataset);
 
     for (const std::string& v : vars)
         loader->AddVariable(v.c_str(), 'F');
@@ -372,7 +373,7 @@ int main(int argc, char* argv[]) {
               << ", norm mode " << normMode << "\n"
               << "Variables (" << vars.size() << "):";
     for (const std::string& v : vars) std::cout << " " << v;
-    std::cout << "\nWeights:  " << dataset << "/weights/TMVAClassification_"
+    std::cout << "\nWeights:  weight/" << dataset << "/weights/TMVAClassification_"
               << method << ".weights.xml\n"
               << "Config:   " << dataset << "/train_config.txt\n"
               << "TMVA file: " << outName

@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
     const std::string presel = getOption(argc, argv, "presel", "");
 
     const std::string weightFile =
-        dataset + "/weights/TMVAClassification_" + method + ".weights.xml";
+        "weight/" + dataset + "/weights/TMVAClassification_" + method + ".weights.xml";
     if (gSystem->AccessPathName(weightFile.c_str())) {
         std::cerr << "Cannot find " << weightFile
                   << " (run trainTMVA first, same --dataset/--method)\n";
