@@ -13,7 +13,7 @@ docs/        TMVA_REFERENCE.md: features, importance, all TMVA parameters, STAR 
 data/        ROOT files, summary CSV          (created)
 plots/       PNGs                             (created)
 logs/        per-step logs                    (created)
-ds_<tag>/    trained TMVA weights per study   (created)
+weight/      trained TMVA models: weight/<dataset>/  (created)
 ```
 
 ## 1. Build
@@ -105,7 +105,10 @@ make ablation   TAG=smear0        # retrain without each feature group; compare 
 grep -A 32 "Ranking result" logs/smear0_train.log      # TMVA's own variable ranking
 ```
 
-Every training writes `ds_<tag>/train_config.txt` (command, selections, TMVA options, rows, variables).
+Every training leaves its model in `weight/<dataset>/`: `weights/TMVAClassification_<method>.weights.xml`
+(read by `applyTMVA`) and `train_config.txt` (command, selections, TMVA options, rows, variables). TMVA first
+writes `<dataset>/` in the working directory; `trainTMVA` moves it into `weight/` when it finishes and replaces
+an earlier training with the same `--dataset`. Models from before this change are moved with `make migrate-weights`.
 Feature definitions, importance interpretation, every BDT parameter, and the plan for STAR embedding
 (two-file training with `--signal-file` / `--background-file` / `--bkg-cut`, and a sideband closure
 test you can run on simulation) are in `docs/TMVA_REFERENCE.md`.
@@ -161,7 +164,7 @@ and compare its `auc` with the test row.
 |---|---|
 | `permission denied: ./scripts/...sh` | `chmod +x scripts/*.sh` |
 | `Unknown option --...` | Check spelling; options must be `--key=value`. |
-| `Cannot find <dataset>/weights/...xml` | Run `trainTMVA` first, with the same `--dataset` and `--method`. |
+| `Cannot find weight/<dataset>/weights/...xml` | Run `trainTMVA` first, with the same `--dataset` and `--method`. Older `ds_*` folders in the project root: `make migrate-weights`. |
 | `No xsWeight branch` | Rebuild the candidates with the current `buildtree`. |
 | `Too few signal or background rows` | Generate more events. Training needs at least 100 of each class in both halves. |
 | Linker error about TMVA | The Makefile links `-lTMVA` for `trainTMVA` and `applyTMVA`. Make sure ROOT was built with TMVA. |

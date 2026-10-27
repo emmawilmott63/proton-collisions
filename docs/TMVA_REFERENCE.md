@@ -84,7 +84,7 @@ Importance results from your trained BDT go here once you have run the commands 
 
 ## 4. TMVA parameters
 
-All are command-line options of `trainTMVA` (defaults in brackets); the exact string passed to TMVA is saved in `<dataset>/train_config.txt`.
+All are command-line options of `trainTMVA` (defaults in brackets); the exact string passed to TMVA is saved in `weight/<dataset>/train_config.txt`.
 
 ### BDT
 
@@ -179,7 +179,7 @@ mass), and the same would happen with real data.
 | Two-file training with a sideband selection | implemented (untested on real data) |
 | Same row selection in training and application | `--presel` |
 | Importance, ablation, mass-correlation and sculpting checks | implemented |
-| Reproducible training record | `<dataset>/train_config.txt` |
+| Reproducible training record | `weight/<dataset>/train_config.txt` |
 | Features computable identically in embedding and data | open: jet, isolation, event-level and neutral features need detector-level definitions; track kinematics are fine |
 | Topological variables | open: need vertex information from the generator (regeneration) or come directly from STAR |
 | Data vs embedding agreement for each input variable (sideband-subtracted data against embedding signal) | open |
