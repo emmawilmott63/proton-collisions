@@ -16,9 +16,49 @@
 #include "analysisUtils.h"
 
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 #include <string>
 #include <vector>
+
+// Everything the TMVA programs produce goes under TMVA-output/:
+//   models/<dataset>/   trained model: weights/*.xml (read by applyTMVA) and
+//                       train_config.txt
+//   training/           TMVA training file (open with TMVAGui)
+//   results/            response histograms, importance CSVs, tmva_summary.csv
+//   plots/              PNGs
+//   logs/               train / apply logs written by make and the scripts
+// The candidate files (data/candidates_*.root) are inputs, not TMVA output,
+// and stay in data/.
+inline std::string outDir(const std::string& sub = "") {
+    return sub.empty() ? std::string("TMVA-output") : "TMVA-output/" + sub;
+}
+
+inline std::string modelDir(const std::string& dataset) {
+    return outDir("models/" + dataset);
+}
+
+inline std::string weightFilePath(const std::string& dataset,
+                                  const std::string& method) {
+    return modelDir(dataset) + "/weights/TMVAClassification_" + method +
+           ".weights.xml";
+}
+
+inline std::string summaryCsvPath() {
+    return outDir("results/tmva_summary.csv");
+}
+
+// Dataset names become directory names: only letters, digits, '_', '-' and
+// '.', and no leading '.' (so no paths and no "..").
+inline bool validDatasetName(const std::string& s) {
+    if (s.empty() || s[0] == '.')
+        return false;
+    for (char c : s)
+        if (!(std::isalnum(static_cast<unsigned char>(c)) || c == '_' ||
+              c == '-' || c == '.'))
+            return false;
+    return true;
+}
 
 inline std::vector<std::string> splitCommas(const std::string& s) {
     std::vector<std::string> out;

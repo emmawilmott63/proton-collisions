@@ -66,9 +66,9 @@ Three complementary measures. Run them on the same trained BDT.
 
 | Measure | How | What it tells you |
 |---|---|---|
-| TMVA's own ranking | `grep -A 32 "Ranking result" logs/<tag>_train.log` | how often and how usefully each variable is used in the trees (gain-based; favours variables with many distinct values) |
-| Permutation importance | `make importance TAG=smear0` (or `./importanceTMVA <candidates> --dataset=ds_<tag>`) | AUC drop when a variable, or a whole group, is shuffled; also prints each variable's correlation with the mass in background rows. Writes `data/importance<tag>.csv` |
-| Ablation | `make ablation TAG=smear0` (or `./scripts/run_ablation.sh <candidates>`) | retrains without each group and compares AUC and best significance in `data/tmva_summary.csv`. The most reliable, because the BDT cannot fall back on a correlated partner |
+| TMVA's own ranking | `grep -A 32 "Ranking result" TMVA-output/logs/<tag>_train.log` | how often and how usefully each variable is used in the trees (gain-based; favours variables with many distinct values) |
+| Permutation importance | `make importance TAG=smear0` (or `./importanceTMVA <candidates> --dataset=ds_<tag>`) | AUC drop when a variable, or a whole group, is shuffled; also prints each variable's correlation with the mass in background rows. Writes `TMVA-output/results/importance<tag>.csv` |
+| Ablation | `make ablation TAG=smear0` (or `./scripts/run_ablation.sh <candidates>`) | retrains without each group and compares AUC and best significance in `TMVA-output/results/tmva_summary.csv`. The most reliable, because the BDT cannot fall back on a correlated partner |
 
 How to read them:
 
@@ -84,7 +84,7 @@ Importance results from your trained BDT go here once you have run the commands 
 
 ## 4. TMVA parameters
 
-All are command-line options of `trainTMVA` (defaults in brackets); the exact string passed to TMVA is saved in `weight/<dataset>/train_config.txt`.
+All are command-line options of `trainTMVA` (defaults in brackets); the exact string passed to TMVA is saved in `TMVA-output/models/<dataset>/train_config.txt`.
 
 ### BDT
 
@@ -179,7 +179,7 @@ mass), and the same would happen with real data.
 | Two-file training with a sideband selection | implemented (untested on real data) |
 | Same row selection in training and application | `--presel` |
 | Importance, ablation, mass-correlation and sculpting checks | implemented |
-| Reproducible training record | `weight/<dataset>/train_config.txt` |
+| Reproducible training record | `TMVA-output/models/<dataset>/train_config.txt` |
 | Features computable identically in embedding and data | open: jet, isolation, event-level and neutral features need detector-level definitions; track kinematics are fine |
 | Topological variables | open: need vertex information from the generator (regeneration) or come directly from STAR |
 | Data vs embedding agreement for each input variable (sideband-subtracted data against embedding signal) | open |

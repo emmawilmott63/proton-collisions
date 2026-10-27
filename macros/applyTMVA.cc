@@ -55,7 +55,7 @@
 //                       (rows outside the training selection are not scored)
 //   --vars / --drop / --drop-group
 //                       MUST match the options used in trainTMVA
-//   --out=PATH          histograms   [data/bdt_response<tag>.root]
+//   --out=PATH          histograms   [TMVA-output/results/bdt_response<tag>.root]
 //
 // Yields are expected counts in the signal window for the chosen
 // luminosity: weight * xsWeight [mb] * L [mb^-1]. For --events=test they
@@ -93,7 +93,8 @@ int main(int argc, char* argv[]) {
     const std::string method  = getOption(argc, argv, "method", "BDT");
     const std::string events  = getOption(argc, argv, "events", "test");
     const std::string outName =
-        getOption(argc, argv, "out", "data/bdt_response" + tag + ".root");
+        getOption(argc, argv, "out",
+                  outDir("results") + "/bdt_response" + tag + ".root");
 
     // Signal window: by default taken from the signal mass distribution
     // itself (median +- nSigma * robust sigma), so it follows the smearing.
@@ -121,15 +122,17 @@ int main(int argc, char* argv[]) {
     const std::string presel = getOption(argc, argv, "presel", "");
 
     const std::string weightFile =
-        "weight/" + dataset + "/weights/TMVAClassification_" + method + ".weights.xml";
+        weightFilePath(dataset, method);
     if (gSystem->AccessPathName(weightFile.c_str())) {
         std::cerr << "Cannot find " << weightFile
-                  << " (run trainTMVA first, same --dataset/--method)\n";
+                  << " (run trainTMVA first, same --dataset/--method; "
+                     "results from before the TMVA-output/ folder existed can "
+                     "be moved with: make migrate-output)\n";
         return 1;
     }
 
-    gSystem->mkdir("data", true);
-    gSystem->mkdir("plots", true);
+    gSystem->mkdir(outDir("results").c_str(), true);
+    gSystem->mkdir(outDir("plots").c_str(), true);
 
     // -----------------------------
     // Input tree
@@ -446,7 +449,7 @@ int main(int argc, char* argv[]) {
     hMassSigAll.Write();
     hMassSigCut.Write();
 
-    const std::string stem = "plots/tmva_" + method + tag;
+    const std::string stem = outDir("plots") + "/tmva_" + method + tag;
 
     {   // BDT response
         TH1D* s = static_cast<TH1D*>(hScoreSig.Clone("s_norm"));
@@ -509,7 +512,7 @@ int main(int argc, char* argv[]) {
     }
 
     // One summary line per (tag, method), for comparing configurations
-    // (e.g. smearing levels): data/tmva_summary.csv. Re-running the same
+    // (e.g. smearing levels): TMVA-output/results/tmva_summary.csv. Re-running the same
     // tag and method replaces its row. For an overtraining check give the
     // --events=train run its own --tag (e.g. --tag=smear0p03_train) so it
     // does not replace the test row.
@@ -523,7 +526,7 @@ int main(int argc, char* argv[]) {
             << significance(best) << "," << significanceErr(best) << ","
             << sAbove[best] / sTotal << "," << 1.0 - bAbove[best] / bTotal
             << "," << auc;
-        upsertCsvRow("data/tmva_summary.csv",
+        upsertCsvRow(summaryCsvPath(),
             "tag,method,events,lumi_pb,mass_peak,window,sigma_eff,S_nocut,"
             "B_nocut,signif_nocut,best_cut,S_best,B_best,signif_best,"
             "signif_best_err,effS_best,bkgrej_best,auc",

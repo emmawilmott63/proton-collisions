@@ -73,8 +73,8 @@
 //                       dominate)                                      [flat]
 //   --norm-mode=M       EqualNumEvents | NumEvents | None: how class
 //                       weights are balanced in training   [EqualNumEvents]
-//   --dataset=NAME      TMVA dataset / weight directory                [dataset]
-//   --out=PATH          TMVA output file  [data/tmva_training<tag>.root]
+//   --dataset=NAME      model name: TMVA-output/models/<NAME>/         [dataset]
+//   --out=PATH          TMVA output file [TMVA-output/training/tmva_training<tag>.root]
 //
 // Train / test split: candidates with EVEN event numbers train, ODD event
 // numbers test. Splitting by event (not by candidate) keeps all candidates
@@ -84,10 +84,14 @@
 //
 // "mass" is only a spectator: it is NOT a training variable.
 //
-// Output: <dataset>/weights/TMVAClassification_<method>.weights.xml (read by
-// applyTMVA), <dataset>/train_config.txt (everything needed to reproduce the
-// training) and the usual TMVA training file (open with TMVAGui). The
-// variable ranking is printed in the TMVA log ("Ranking result").
+// Output (all under TMVA-output/):
+//   models/<dataset>/weights/TMVAClassification_<method>.weights.xml
+//                          (read by applyTMVA)
+//   models/<dataset>/train_config.txt  (everything needed to reproduce the
+//                          training)
+//   training/tmva_training<tag>.root   (open with TMVAGui)
+// The variable ranking is printed in the TMVA log ("Ranking result").
+// Training again with the same --dataset overwrites that model.
 
 namespace {
 
@@ -170,7 +174,14 @@ int main(int argc, char* argv[]) {
     const std::string dataset = getOption(argc, argv, "dataset", "dataset");
     const std::string method  = getOption(argc, argv, "method", "BDT");
     const std::string outName =
-        getOption(argc, argv, "out", "data/tmva_training" + tag + ".root");
+        getOption(argc, argv, "out",
+                  outDir("training") + "/tmva_training" + tag + ".root");
+
+    if (!validDatasetName(dataset)) {
+        std::cerr << "--dataset may contain only letters, digits, '_', '-' "
+                     "and '.', and must not start with '.'\n";
+        return 1;
+    }
 
     const std::string signalFile = getOption(argc, argv, "signal-file", "");
     const std::string backgroundFile =
@@ -247,8 +258,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    gSystem->mkdir("data", true);
-    gSystem->mkdir(("weight/" + dataset + "/weights").c_str(), true);
+    gSystem->mkdir(outDir("training").c_str(), true);
+    gSystem->mkdir((modelDir(dataset) + "/weights").c_str(), true);
 
     // -----------------------------
     // Read candidates, split by event parity (trees live in memory)
@@ -296,7 +307,7 @@ int main(int argc, char* argv[]) {
     // Record the configuration next to the weights
     // -----------------------------
     {
-        std::ofstream cfg("weight/" + dataset + "/train_config.txt");
+        std::ofstream cfg(modelDir(dataset) + "/train_config.txt");
         cfg << "command:";
         for (int i = 0; i < argc; ++i)
             cfg << " " << argv[i];
@@ -330,8 +341,17 @@ int main(int argc, char* argv[]) {
     TMVA::Factory factory("TMVAClassification", outFile,
         "!V:!Silent:!Color:!DrawProgressBar:AnalysisType=Classification");
 
-    const std::string tmvaDataset = "weight/" + dataset;
-    TMVA::DataLoader* loader = new TMVA::DataLoader(tmvaDataset);
+    // TMVA writes <dataset>/weights relative to the working directory, so
+    // run it from TMVA-output/models/: the model then appears in place and
+    // nothing has to be moved afterwards. The output and input files are
+    // already open and the trees are in memory, so they are not affected.
+    const std::string startDir = gSystem->WorkingDirectory();
+    if (!gSystem->ChangeDirectory(outDir("models").c_str())) {
+        std::cerr << "Could not enter " << outDir("models") << "\n";
+        return 1;
+    }
+
+    TMVA::DataLoader* loader = new TMVA::DataLoader(dataset);
 
     for (const std::string& v : vars)
         loader->AddVariable(v.c_str(), 'F');
@@ -359,6 +379,8 @@ int main(int argc, char* argv[]) {
     factory.TestAllMethods();
     factory.EvaluateAllMethods();
 
+    gSystem->ChangeDirectory(startDir.c_str());
+
     outFile->Close();
     sigSrc.file->Close();
     if (twoFiles)
@@ -373,9 +395,8 @@ int main(int argc, char* argv[]) {
               << ", norm mode " << normMode << "\n"
               << "Variables (" << vars.size() << "):";
     for (const std::string& v : vars) std::cout << " " << v;
-    std::cout << "\nWeights:  weight/" << dataset << "/weights/TMVAClassification_"
-              << method << ".weights.xml\n"
-              << "Config:   " << dataset << "/train_config.txt\n"
+    std::cout << "\nWeights:  " << weightFilePath(dataset, method) << "\n"
+              << "Config:   " << modelDir(dataset) << "/train_config.txt\n"
               << "TMVA file: " << outName
               << "   (root -l -e 'TMVA::TMVAGui(\"" << outName << "\")')\n"
               << "Next:     ./applyTMVA " << inputName

@@ -15,7 +15,7 @@
 #   TRAIN_OPTS="--depth=5 --min-node=0.5"  APPLY_OPTS="--lumi-pb=10"
 #   FEATURE_GROUPS="jet isolation"   only these groups
 #
-# Results: one row per run in data/tmva_summary.csv, tags <base>_all and
+# Results: one row per run in TMVA-output/results/tmva_summary.csv, tags <base>_all and
 # <base>_no_<group>. Compare the auc and signif_best columns.
 
 CAND=${1:-data/candidates_inc_5_100.root}
@@ -35,19 +35,19 @@ fi
 BASE=$(basename "$CAND" .root)
 BASE=${BASE#candidates_}
 
-mkdir -p data logs plots
+mkdir -p TMVA-output/logs TMVA-output/results
 
 run_one() {
     TAG=$1
     shift
     echo "=== $TAG ==="
     ./trainTMVA "$CAND" --dataset="ds_${TAG}" --tag="$TAG" "$@" $TRAIN_OPTS \
-        > "logs/${TAG}_train.log" 2>&1 \
-        || { echo "trainTMVA failed, see logs/${TAG}_train.log"; return 1; }
+        > "TMVA-output/logs/${TAG}_train.log" 2>&1 \
+        || { echo "trainTMVA failed, see TMVA-output/logs/${TAG}_train.log"; return 1; }
     ./applyTMVA "$CAND" --dataset="ds_${TAG}" --tag="$TAG" "$@" $APPLY_OPTS \
-        > "logs/${TAG}_apply.log" 2>&1 \
-        || { echo "applyTMVA failed, see logs/${TAG}_apply.log"; return 1; }
-    grep -E "ROC integral|Best cut" "logs/${TAG}_apply.log"
+        > "TMVA-output/logs/${TAG}_apply.log" 2>&1 \
+        || { echo "applyTMVA failed, see TMVA-output/logs/${TAG}_apply.log"; return 1; }
+    grep -E "ROC integral|Best cut" "TMVA-output/logs/${TAG}_apply.log"
 }
 
 run_one "ablation_${BASE}_all" || exit 1
@@ -57,4 +57,5 @@ done
 
 echo
 echo "Ablation summary (higher auc / signif_best = better):"
-( head -1 data/tmva_summary.csv; grep "^ablation_${BASE}_" data/tmva_summary.csv ) | column -s, -t
+CSV=TMVA-output/results/tmva_summary.csv
+( head -1 "$CSV"; grep "^ablation_${BASE}_" "$CSV" ) | column -s, -t

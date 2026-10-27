@@ -10,10 +10,15 @@ background. Optionally smears the K and π momenta to study detector effects.
 macros/      all C++ sources and ROOT macros (plotD0.C)
 scripts/     run_generation.sh, run_smear_study.sh, run_ablation.sh
 docs/        TMVA_REFERENCE.md: features, importance, all TMVA parameters, STAR preparation
-data/        ROOT files, summary CSV          (created)
-plots/       PNGs                             (created)
-logs/        per-step logs                    (created)
-weight/      trained TMVA models: weight/<dataset>/  (created)
+data/        generated particle files and candidate files (created)
+plots/       other plots, e.g. from mass and sanity       (created)
+logs/        generation and candidate-building logs       (created)
+TMVA-output/ everything the TMVA programs produce         (created)
+  models/<dataset>/   trained model: weights/*.xml and train_config.txt
+  training/           TMVA training files (open with TMVAGui)
+  results/            response histograms, importance CSVs, tmva_summary.csv
+  plots/              BDT response, significance, background-mass PNGs
+  logs/               train and apply logs
 ```
 
 ## 1. Build
@@ -64,8 +69,8 @@ from step 4, not `d0_reco_*.root`.
 ./applyTMVA data/candidates_inc_5_100.root --dataset=ds_inc
 ```
 
-Outputs: `plots/tmva_BDT_inc_5_100_{response,significance,bkgmass}.png`,
-`data/bdt_response_inc_5_100.root` and one row in `data/tmva_summary.csv`.
+Outputs: `TMVA-output/plots/tmva_BDT_inc_5_100_{response,significance,bkgmass}.png`,
+`TMVA-output/results/bdt_response_inc_5_100.root` and one row in `TMVA-output/results/tmva_summary.csv`.
 `--dataset` must be the same for training and applying, and so must `--method`,
 `--vars` and `--drop`.
 
@@ -100,15 +105,16 @@ Output names are tagged from the input file name (`d0_inc_5_100.root` →
 
 ```
 make tmva                         # candidates -> train -> apply, no smearing (tag smear0)
-make importance TAG=smear0        # permutation importance + mass correlation -> data/importance_smear0.csv
-make ablation   TAG=smear0        # retrain without each feature group; compare auc in data/tmva_summary.csv
-grep -A 32 "Ranking result" logs/smear0_train.log      # TMVA's own variable ranking
+make importance TAG=smear0        # permutation importance + mass correlation -> TMVA-output/results/importance_smear0.csv
+make ablation   TAG=smear0        # retrain without each feature group; compare auc in TMVA-output/results/tmva_summary.csv
+grep -A 32 "Ranking result" TMVA-output/logs/smear0_train.log      # TMVA's own variable ranking
 ```
 
-Every training leaves its model in `weight/<dataset>/`: `weights/TMVAClassification_<method>.weights.xml`
-(read by `applyTMVA`) and `train_config.txt` (command, selections, TMVA options, rows, variables). TMVA first
-writes `<dataset>/` in the working directory; `trainTMVA` moves it into `weight/` when it finishes and replaces
-an earlier training with the same `--dataset`. Models from before this change are moved with `make migrate-weights`.
+Every training writes its model straight into `TMVA-output/models/<dataset>/`: `weights/TMVAClassification_<method>.weights.xml`
+(read by `applyTMVA`) and `train_config.txt` (command, selections, TMVA options, rows, variables). Nothing is moved
+afterwards: TMVA is run from inside `TMVA-output/models/`, so its output lands there. Training again with the same
+`--dataset` overwrites that model. Results from before the `TMVA-output/` folder existed (`ds_*` folders, `weight/`,
+TMVA files in `data/`, `plots/` and `logs/`) are moved there once with `make migrate-output`.
 Feature definitions, importance interpretation, every BDT parameter, and the plan for STAR embedding
 (two-file training with `--signal-file` / `--background-file` / `--bkg-cut`, and a sideband closure
 test you can run on simulation) are in `docs/TMVA_REFERENCE.md`.
@@ -125,7 +131,7 @@ make clean-study                             # delete this study's outputs
 make help
 ```
 
-For each level, `make` runs build, train and apply, and prints `data/tmva_summary.csv`
+For each level, `make` runs build, train and apply, and prints `TMVA-output/results/tmva_summary.csv`
 at the end. It only redoes steps whose inputs changed, so you can interrupt and
 resume. Rebuilding a program does not redo finished results: run
 `make clean-study` after changing the code. Write levels consistently
@@ -164,7 +170,7 @@ and compare its `auc` with the test row.
 |---|---|
 | `permission denied: ./scripts/...sh` | `chmod +x scripts/*.sh` |
 | `Unknown option --...` | Check spelling; options must be `--key=value`. |
-| `Cannot find weight/<dataset>/weights/...xml` | Run `trainTMVA` first, with the same `--dataset` and `--method`. Older `ds_*` folders in the project root: `make migrate-weights`. |
+| `Cannot find TMVA-output/models/<dataset>/weights/...xml` | Run `trainTMVA` first, with the same `--dataset` and `--method`. Results from before `TMVA-output/` existed: `make migrate-output`. |
 | `No xsWeight branch` | Rebuild the candidates with the current `buildtree`. |
 | `Too few signal or background rows` | Generate more events. Training needs at least 100 of each class in both halves. |
 | Linker error about TMVA | The Makefile links `-lTMVA` for `trainTMVA` and `applyTMVA`. Make sure ROOT was built with TMVA. |

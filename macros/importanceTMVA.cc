@@ -41,7 +41,7 @@
 //   --seed=N         random seed                              [12345]
 //   --presel=EXPR    row selection used in training
 //   --vars / --drop / --drop-group   MUST match trainTMVA
-//   --tag=NAME / --out=PATH   output [data/importance<tag>.csv]
+//   --tag=NAME / --out=PATH   output [TMVA-output/results/importance<tag>.csv]
 //
 // Weights: flat "weight" only (the same weights as the default training).
 //
@@ -109,7 +109,8 @@ int main(int argc, char* argv[]) {
     const std::string events  = getOption(argc, argv, "events", "test");
     const std::string presel  = getOption(argc, argv, "presel", "");
     const std::string outName =
-        getOption(argc, argv, "out", "data/importance" + tag + ".csv");
+        getOption(argc, argv, "out",
+                  outDir("results") + "/importance" + tag + ".csv");
     const double maxBkg = getNumber(argc, argv, "max-bkg", 200000);
     const int repeats =
         std::max(1, static_cast<int>(getNumber(argc, argv, "repeats", 3)));
@@ -127,10 +128,12 @@ int main(int argc, char* argv[]) {
     const size_t nVars = vars.size();
 
     const std::string weightFile =
-        dataset + "/weights/TMVAClassification_" + method + ".weights.xml";
+        weightFilePath(dataset, method);
     if (gSystem->AccessPathName(weightFile.c_str())) {
         std::cerr << "Cannot find " << weightFile
-                  << " (run trainTMVA first, same --dataset/--method)\n";
+                  << " (run trainTMVA first, same --dataset/--method; "
+                     "results from before the TMVA-output/ folder existed can "
+                     "be moved with: make migrate-output)\n";
         return 1;
     }
 
@@ -324,7 +327,7 @@ int main(int argc, char* argv[]) {
                   << r.corr << std::setprecision(5) << "   [" << r.group
                   << "]\n";
 
-    gSystem->mkdir("data", true);
+    gSystem->mkdir(outDir("results").c_str(), true);
     std::ofstream csv(outName);
     csv << "name,type,group,auc_drop,err,corr_mass_bkg,baseline_auc,events\n";
     for (const std::vector<Result>* list : {&groups, &singles})
