@@ -8,7 +8,8 @@ background. Optionally smears the K and π momenta to study detector effects.
 
 ```
 macros/      all C++ sources and ROOT macros (plotD0.C)
-scripts/     run_generation.sh, run_smear_study.sh
+scripts/     run_generation.sh, run_smear_study.sh, run_ablation.sh
+docs/        TMVA_REFERENCE.md: features, importance, all TMVA parameters, STAR preparation
 data/        ROOT files, summary CSV          (created)
 plots/       PNGs                             (created)
 logs/        per-step logs                    (created)
@@ -74,6 +75,7 @@ Outputs: `plots/tmva_BDT_inc_5_100_{response,significance,bkgmass}.png`,
 |---|---|
 | `buildtree` | One row per opposite-sign K–π pair (daughter pT > 0.5, \|η\| < 1, 1.6 < M < 2.1). Writes the label `isSignal`, 27 features, and weights. |
 | `trainTMVA` | BDT on even event numbers; odd event numbers are the test sample. `mass` is a spectator only, never a training variable. |
+| `importanceTMVA` | Permutation importance of each variable and feature group for a trained BDT, plus each variable's correlation with the mass. |
 | `applyTMVA` | Scores the test events, scans the BDT cut, and reports S, B, S/B and $S/\sqrt{S+B}$ (with Monte Carlo error) in a signal window. Prints a mass-sculpting check. |
 
 ### Weights
@@ -83,18 +85,32 @@ Outputs: `plots/tmva_BDT_inc_5_100_{response,significance,bkgmass}.png`,
 - Yields in `applyTMVA` = weight × xsWeight × L, with `--lumi-pb` (default 1 pb⁻¹).
 - Training uses `weight` only by default; `--train-weights=xs` uses the physical mixture.
 
-### Common options (all written `--key=value`; unknown options are rejected)
+### Common options (written `--key=value`; `buildtree`, `trainTMVA` and `applyTMVA` reject unknown options)
 
 | Program | Options |
 |---|---|
 | `buildtree` | `--smear-pt --smear-eta --smear-phi`, `--min-daughter-pt --max-eta --mass-min --mass-max`, `--bkg-keep`, `--tag`, `--out`, `--seed` |
-| `trainTMVA` | `--method=BDT\|BDTG --ntrees --depth --min-node --train-weights --cut --vars --drop --dataset --tag` |
-| `applyTMVA` | `--events=test\|train\|all --lumi-pb --sig-window --window-nsigma --min-bkg-rows --cut --dataset --tag` |
+| `trainTMVA` | BDT: `--method --boost-type --ntrees --depth --min-node --ncuts --ada-beta --shrinkage --bagging --bag-fraction --separation --prune-method --bdt-options`. Rows: `--presel --sig-cut --bkg-cut --signal-file --background-file`. Other: `--vars --drop --drop-group --train-weights --norm-mode --dataset --tag` (all described in `docs/TMVA_REFERENCE.md`) |
+| `applyTMVA` | `--events=test\|train\|all --lumi-pb --sig-window --window-nsigma --min-bkg-rows --cut --presel --dataset --tag` (`--cut` is the BDT cut; `--presel` must match training) |
 
 Output names are tagged from the input file name (`d0_inc_5_100.root` →
 `_inc_5_100`); `--tag=name` overrides that.
 
-## 5. Smearing study (automated)
+## 5. TMVA diagnostics (no smearing needed)
+
+```
+make tmva                         # candidates -> train -> apply, no smearing (tag smear0)
+make importance TAG=smear0        # permutation importance + mass correlation -> data/importance_smear0.csv
+make ablation   TAG=smear0        # retrain without each feature group; compare auc in data/tmva_summary.csv
+grep -A 32 "Ranking result" logs/smear0_train.log      # TMVA's own variable ranking
+```
+
+Every training writes `ds_<tag>/train_config.txt` (command, selections, TMVA options, rows, variables).
+Feature definitions, importance interpretation, every BDT parameter, and the plan for STAR embedding
+(two-file training with `--signal-file` / `--background-file` / `--bkg-cut`, and a sideband closure
+test you can run on simulation) are in `docs/TMVA_REFERENCE.md`.
+
+## 6. Smearing study (automated)
 
 ```
 make study                                   # levels 0, 1, 3, 5, 10% relative pT smearing
@@ -124,7 +140,7 @@ Useful extras: `BUILD_OPTS="--smear-eta=0.002 --smear-phi=0.002"`,
 
 ### Summary CSV columns
 
-`tag, method, events, lumi_pb, mass_peak, window, sigma_eff, S/B_nocut..., signif_best, signif_best_err, effS_best, bkgrej_best, auc`.
+`tag, method, events, lumi_pb, mass_peak, window, sigma_eff, S_nocut, B_nocut, signif_nocut, best_cut, S_best, B_best, signif_best, signif_best_err, effS_best, bkgrej_best, auc`.
 `auc` (flat weights) measures separation power independently of the mass window.
 The signal window is set automatically from the signal mass distribution
 (median ± 2 robust σ, minimum ±0.005 GeV/c²), so it follows the smearing.

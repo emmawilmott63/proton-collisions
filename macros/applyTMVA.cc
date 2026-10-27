@@ -51,7 +51,10 @@
 //                       cut in a statistical fluctuation)      [20]
 //   --cut=X             use this BDT cut for the mass plots instead of the
 //                       best-significance cut
-//   --vars / --drop     MUST match the options used in trainTMVA
+//   --presel=EXPR       row selection; MUST match --presel used in trainTMVA
+//                       (rows outside the training selection are not scored)
+//   --vars / --drop / --drop-group
+//                       MUST match the options used in trainTMVA
 //   --out=PATH          histograms   [data/bdt_response<tag>.root]
 //
 // Yields are expected counts in the signal window for the chosen
@@ -79,7 +82,8 @@ int main(int argc, char* argv[]) {
     if (!checkOptions(argc, argv,
             {"method", "dataset", "events", "out", "tag", "mass-peak",
              "sig-window", "window-nsigma", "min-window", "mass-min",
-             "mass-max", "lumi-pb", "min-bkg-rows", "cut", "vars", "drop"}))
+             "mass-max", "lumi-pb", "min-bkg-rows", "cut", "presel", "vars",
+             "drop", "drop-group"}))
         return 1;
 
     const std::string inputName =
@@ -114,6 +118,7 @@ int main(int argc, char* argv[]) {
     const double scale = (events == "all") ? 1.0 : 2.0;
 
     const std::vector<std::string> vars = getTMVAVars(argc, argv);
+    const std::string presel = getOption(argc, argv, "presel", "");
 
     const std::string weightFile =
         dataset + "/weights/TMVAClassification_" + method + ".weights.xml";
@@ -139,6 +144,13 @@ int main(int argc, char* argv[]) {
     if (!tree) {
         std::cerr << "No TTree 'Candidates' in " << inputName << "\n";
         return 1;
+    }
+
+    if (!presel.empty()) {
+        gROOT->cd();   // the selected copy lives in memory
+        tree = tree->CopyTree(presel.c_str());
+        std::cout << "Preselection '" << presel << "': "
+                  << tree->GetEntries() << " rows\n";
     }
 
     std::vector<float> vals(vars.size(), 0.f);

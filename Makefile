@@ -14,7 +14,7 @@ ANA = sanity mass buildtree features
 
 # TMVA programs (share analysisUtils.h and tmvaCommon.h); need -lTMVA, which
 # root-config --libs does not include
-TMVA_PROGS = trainTMVA applyTMVA
+TMVA_PROGS = trainTMVA applyTMVA importanceTMVA
 
 all: $(GEN) $(ANA) $(TMVA_PROGS) reconstruct-d0
 
@@ -42,6 +42,9 @@ clean:
 #   make study LEVELS="0 0.02 0.05" other smearing levels (relative pT)
 #   make study METHOD=BDTG          other TMVA method
 #   make study TRAIN_OPTS="--depth=5 --ntrees=600 --min-node=0.5"
+#   make tmva                       the same without smearing (LEVELS=0)
+#   make importance TAG=smear0      permutation importance of a trained BDT
+#   make ablation   TAG=smear0      retrain without each feature group
 #   make reapply                    rerun only applyTMVA (keeps the trained BDTs)
 #   make clean-study                delete this study's candidates, trained
 #                                   BDTs and plots (asks for nothing: be sure)
@@ -59,6 +62,7 @@ JOBS       ?= 2
 BUILD_OPTS ?=
 TRAIN_OPTS ?=
 APPLY_OPTS ?=
+IMPORTANCE_OPTS ?=
 
 # 0.03 -> smear0p03
 tagof   = smear$(subst .,p,$(1))
@@ -93,6 +97,18 @@ study: $(RESULTS)
 	@echo "Summary (data/tmva_summary.csv):"
 	@column -s, -t data/tmva_summary.csv
 
+# No smearing: the plain TMVA pipeline (candidates, train, apply)
+tmva:
+	$(MAKE) study LEVELS=0
+
+# Diagnostics for a study that has been run (TAG = its tag, e.g. smear0)
+TAG ?= smear0
+importance: | importanceTMVA
+	./importanceTMVA data/candidates_$(TAG).root --dataset=ds_$(TAG) --method=$(METHOD) --tag=$(TAG) $(IMPORTANCE_OPTS)
+
+ablation: | trainTMVA applyTMVA
+	./scripts/run_ablation.sh data/candidates_$(TAG).root
+
 # Redo only the apply step (new cut scan / summary) without retraining
 reapply:
 	rm -f $(RESULTS)
@@ -105,4 +121,4 @@ clean-study:
 help:
 	@sed -n '/^# Analysis pipeline/,/^# -----/p' Makefile
 
-.PHONY: all clean study reapply clean-study generate help
+.PHONY: all clean study tmva importance ablation reapply clean-study generate help
