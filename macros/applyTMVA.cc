@@ -30,13 +30,18 @@
 // Options (defaults in brackets):
 //   --method=BDT|BDTG   which trained method                  [BDT]
 //   --dataset=NAME      TMVA dataset / weight directory       [dataset]
-//   --events=test|train|all
-//                       test  = ODD event numbers only (never seen in
-//                               training)
-//                       train = EVEN event numbers (the training sample;
-//                               use it to check for overtraining by
-//                               comparing the ROC integral with test)
-//                       all   = everything (over-optimistic)  [test]
+//   --events=test|train|holdout|all
+//                       test    = the test fold: event%K == I, with
+//                                 --nfolds=K --fold=I [K=2, I=1: ODD events]
+//                                 (never seen in training)
+//                       train   = the other folds (the training sample; use
+//                                 it to check for overtraining by comparing
+//                                 the ROC integral with test)
+//                       holdout = events with event%7 == 6: the set aside
+//                                 set of a model trained with --holdout=1.
+//                                 Use it once, for the final numbers.
+//                       all     = everything (over-optimistic)  [test]
+//   --nfolds / --fold / --holdout   MUST match trainTMVA (see tmvaCommon.h)
 //   --sig-window=X      half-width of the signal window       [auto]
 //   --mass-peak=X       centre of the signal window           [auto]
 //   --window-nsigma=X   auto window = X * robust sigma of the signal
@@ -83,7 +88,7 @@ int main(int argc, char* argv[]) {
             {"method", "dataset", "events", "out", "tag", "mass-peak",
              "sig-window", "window-nsigma", "min-window", "mass-min",
              "mass-max", "lumi-pb", "min-bkg-rows", "cut", "presel", "vars",
-             "drop", "drop-group"}))
+             "drop", "drop-group", "nfolds", "fold", "holdout"}))
         return 1;
 
     const std::string inputName =
@@ -108,15 +113,24 @@ int main(int argc, char* argv[]) {
     const double minBkgRows = getNumber(argc, argv, "min-bkg-rows", 20.0);
     const double fixedCut  = getNumber(argc, argv, "cut", -999.0);
 
-    if (events != "test" && events != "train" && events != "all") {
-        std::cerr << "--events must be test, train or all\n";
+    if (events != "test" && events != "train" && events != "holdout" &&
+        events != "all") {
+        std::cerr << "--events must be test, train, holdout or all\n";
         return 1;
     }
-    if (events != "test")
+    if (events == "train" || events == "all")
         std::cerr << "Warning: --events=" << events << " includes training "
                      "events; performance will look better than it is.\n";
-    // test and train each hold half of the events, so double the yields
-    const double scale = (events == "all") ? 1.0 : 2.0;
+    Split split;
+    if (!getSplit(argc, argv, split))
+        return 1;
+
+    const auto selected = [&](int ev) {
+        if (events == "test")    return isTestEvent(split, ev);
+        if (events == "train")   return isTrainEvent(split, ev);
+        if (events == "holdout") return isHoldoutEvent(ev);
+        return true;
+    };
 
     const std::vector<std::string> vars = getTMVAVars(argc, argv);
     const std::string presel = getOption(argc, argv, "presel", "");
@@ -148,6 +162,22 @@ int main(int argc, char* argv[]) {
         std::cerr << "No TTree 'Candidates' in " << inputName << "\n";
         return 1;
     }
+
+    // The scored events are a fraction of all events; yields are multiplied
+    // by (all events) / (scored events) so they refer to the whole sample.
+    // (Event numbers are the entry numbers 0 .. N-1 of the particle tree.)
+    const Long64_t nEventsTotal =
+        static_cast<Long64_t>(tree->GetMaximum("event")) + 1;
+    Long64_t nSelectedEvents = 0;
+    for (Long64_t e = 0; e < nEventsTotal; ++e)
+        if (selected(static_cast<int>(e)))
+            ++nSelectedEvents;
+    if (nSelectedEvents == 0) {
+        std::cerr << "No events selected by --events=" << events << "\n";
+        return 1;
+    }
+    const double scale = static_cast<double>(nEventsTotal) /
+                         static_cast<double>(nSelectedEvents);
 
     if (!presel.empty()) {
         gROOT->cd();   // the selected copy lives in memory
@@ -198,9 +228,7 @@ int main(int argc, char* argv[]) {
     const Long64_t nEntries = tree->GetEntries();
     for (Long64_t i = 0; i < nEntries; ++i) {
         tree->GetEntry(i);
-        if (events == "test" && (b_event % 2) != 1)
-            continue;
-        if (events == "train" && (b_event % 2) != 0)
+        if (!selected(b_event))
             continue;
         double w = b_weight;
         if (hasXs)
@@ -242,20 +270,34 @@ int main(int argc, char* argv[]) {
     // -----------------------------
     // Histograms
     // -----------------------------
+    if (rows.empty()) {
+        std::cerr << "No candidates to score\n";
+        return 1;
+    }
+    // Score range from the data: TMVA methods differ (BDT about -0.5..0.3,
+    // Fisher unbounded), and this uses all bins.
+    float minScore = rows.front().score, maxScore = rows.front().score;
+    for (const Row& r : rows) {
+        minScore = std::min(minScore, r.score);
+        maxScore = std::max(maxScore, r.score);
+    }
+    const double sPad = 1e-6 + 1e-3 * (maxScore - minScore);
+    const double sLo = minScore - sPad, sHi = maxScore + sPad;
+
     const int nScore = 400;
     const int nMass  = 100;
 
     TH1D hScoreSig("hScore_sig", ";BDT response;Fraction of candidates",
-                   nScore, -1, 1);
+                   nScore, sLo, sHi);
     TH1D hScoreBkg("hScore_bkg", ";BDT response;Fraction of candidates",
-                   nScore, -1, 1);
-    TH1D hSigWin("hScoreWindow_sig", "signal in window", nScore, -1, 1);
-    TH1D hBkgWin("hScoreWindow_bkg", "background in window", nScore, -1, 1);
+                   nScore, sLo, sHi);
+    TH1D hSigWin("hScoreWindow_sig", "signal in window", nScore, sLo, sHi);
+    TH1D hBkgWin("hScoreWindow_bkg", "background in window", nScore, sLo, sHi);
     TH1D hBkgRows("hScoreWindow_bkg_rows",
-                  "background rows in window (unweighted)", nScore, -1, 1);
+                  "background rows in window (unweighted)", nScore, sLo, sHi);
     // flat-weight response (training weights, all masses) for the ROC integral
-    TH1D hAucSig("hAuc_sig", "", nScore, -1, 1);
-    TH1D hAucBkg("hAuc_bkg", "", nScore, -1, 1);
+    TH1D hAucSig("hAuc_sig", "", nScore, sLo, sHi);
+    TH1D hAucBkg("hAuc_bkg", "", nScore, sLo, sHi);
     // errors from the Monte Carlo weights (a few heavy rows dominate)
     hSigWin.Sumw2();
     hBkgWin.Sumw2();
@@ -330,6 +372,15 @@ int main(int argc, char* argv[]) {
         const double dS = (s + 2.0 * b) / (2.0 * d15);
         const double dB = -s / (2.0 * d15);
         return std::sqrt(dS * dS * sErr2[i] + dB * dB * bErr2[i]);
+    };
+
+    // background rejection (1 - eff_B) at a given signal efficiency
+    const auto rejAt = [&](double effS) {
+        int k = 0;
+        for (int i = 0; i < nScore; ++i)
+            if (sAbove[i] / sTotal >= effS)
+                k = i;
+        return 1.0 - bAbove[k] / bTotal;
     };
 
     int best = 0;
@@ -525,11 +576,14 @@ int main(int argc, char* argv[]) {
             << "," << sAbove[best] << "," << bAbove[best] << ","
             << significance(best) << "," << significanceErr(best) << ","
             << sAbove[best] / sTotal << "," << 1.0 - bAbove[best] / bTotal
-            << "," << auc;
+            << "," << auc << "," << rejAt(0.3) << "," << rejAt(0.5) << ","
+            << rejAt(0.7) << "," << split.nfolds << ","
+            << (events == "test" ? split.fold : -1);
         upsertCsvRow(summaryCsvPath(),
             "tag,method,events,lumi_pb,mass_peak,window,sigma_eff,S_nocut,"
             "B_nocut,signif_nocut,best_cut,S_best,B_best,signif_best,"
-            "signif_best_err,effS_best,bkgrej_best,auc",
+            "signif_best_err,effS_best,bkgrej_best,auc,rej_effS30,rej_effS50,"
+            "rej_effS70,nfolds,fold",
             row.str(), 2);
     }
 

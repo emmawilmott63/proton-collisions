@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -60,6 +61,54 @@ inline bool validDatasetName(const std::string& s) {
     return true;
 }
 
+// ---- Event splits -----------------------------------------------------------
+// Every split is by event number, so all candidates of one event are on the
+// same side (event-level features cannot leak between train and test).
+//   --nfolds=K --fold=i   test = events with event%K == i, train = the rest.
+//                         Default K = 2, i = 1: test = odd, train = even.
+//                         Running folds 0..K-1 gives K-fold cross-validation.
+//   --holdout=1           additionally set aside events with event%7 == 6.
+//                         They are excluded from training AND testing, so
+//                         tuning never touches them. Evaluate them once, at
+//                         the end, with applyTMVA --events=holdout.
+//                         (7 is coprime to the usual K, so the holdout is
+//                         spread evenly over the folds.)
+struct Split {
+    int nfolds = 2;
+    int fold = 1;
+    bool holdout = false;
+};
+
+constexpr int kHoldoutMod = 7;
+constexpr int kHoldoutVal = 6;
+
+inline bool isHoldoutEvent(int ev) { return (ev % kHoldoutMod) == kHoldoutVal; }
+
+inline bool isTestEvent(const Split& s, int ev) {
+    return !(s.holdout && isHoldoutEvent(ev)) && (ev % s.nfolds) == s.fold;
+}
+
+inline bool isTrainEvent(const Split& s, int ev) {
+    return !(s.holdout && isHoldoutEvent(ev)) && (ev % s.nfolds) != s.fold;
+}
+
+// TTree selection strings equivalent to the two functions above
+inline std::string testSelection(const Split& s) {
+    std::string r = "(event%" + std::to_string(s.nfolds) + ")==" +
+                    std::to_string(s.fold);
+    if (s.holdout)
+        r += "&&(event%7)!=6";
+    return r;
+}
+
+inline std::string trainSelection(const Split& s) {
+    std::string r = "(event%" + std::to_string(s.nfolds) + ")!=" +
+                    std::to_string(s.fold);
+    if (s.holdout)
+        r += "&&(event%7)!=6";
+    return r;
+}
+
 inline std::vector<std::string> splitCommas(const std::string& s) {
     std::vector<std::string> out;
     std::stringstream ss(s);
@@ -91,6 +140,19 @@ inline std::string featureGroup(const std::string& v) {
     for (const char* n : iso)       if (v == n) return "isolation";
     for (const char* n : evt)       if (v == n) return "event";
     return "other";
+}
+
+// Reads --nfolds, --fold, --holdout; returns false (after printing why) if
+// they are invalid.
+inline bool getSplit(int argc, char* argv[], Split& split) {
+    split.nfolds = static_cast<int>(getNumber(argc, argv, "nfolds", 2));
+    split.fold = static_cast<int>(getNumber(argc, argv, "fold", 1));
+    split.holdout = getNumber(argc, argv, "holdout", 0) != 0;
+    if (split.nfolds < 2 || split.fold < 0 || split.fold >= split.nfolds) {
+        std::cerr << "--nfolds must be >= 2 and 0 <= --fold < --nfolds\n";
+        return false;
+    }
+    return true;
 }
 
 inline std::vector<std::string> getTMVAVars(int argc, char* argv[]) {

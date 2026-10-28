@@ -11,6 +11,7 @@
 #include "TMVA/Tools.h"
 #include "TMVA/Types.h"
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -41,6 +42,19 @@
 //                       sideband: "mass<1.80||mass>1.93"
 //   (EXPR is a ROOT TTree expression; && and || are allowed.)
 //
+//   --bkg-subsample=F   use only a fraction F (0 < F <= 1) of the background
+//                       events (by event number) for training; speeds up
+//                       scans and cross-validation. Class weights are
+//                       balanced in training, so no re-weighting is needed.
+//
+// ---- Split and cross-validation ---------------------------------------------
+//   --nfolds=K --fold=I  test = events with event%K == I, train = the others
+//                       [K = 2, I = 1: test odd, train even]. Run I = 0..K-1
+//                       for K-fold cross-validation (scripts/run_cv.sh).
+//   --holdout=1         set aside events with event%7 == 6: never used for
+//                       training or testing, so tuning cannot touch them
+//                       (evaluate once at the end: applyTMVA --events=holdout)
+//
 // ---- Variables -------------------------------------------------------------
 //   --vars=a,b,c        use exactly these branches   (see tmvaCommon.h)
 //   --drop=a,b          remove branches from the default list
@@ -66,6 +80,14 @@
 //   --bdt-options=STR   raw TMVA options appended last (override anything),
 //                       e.g. "DoBoostMonitor:SkipNormalization"
 //
+// ---- Other methods, for comparison -----------------------------------------
+//   --also=A,B,...     also train these with fixed standard options, in the
+//                       same run and on the same samples: Fisher, LD,
+//                       Likelihood, MLP, BDTG. Each gets its own weights file
+//                       (applyTMVA --method=Fisher, ...). TMVA prints one ROC
+//                       table for all of them. MLP is slow on millions of
+//                       rows: combine with --bkg-subsample.
+//
 // ---- Weights and other -----------------------------------------------------
 //   --train-weights=flat|xs
 //                       flat: weight only. xs: weight * xsWeight (physical
@@ -76,10 +98,10 @@
 //   --dataset=NAME      model name: TMVA-output/models/<NAME>/         [dataset]
 //   --out=PATH          TMVA output file [TMVA-output/training/tmva_training<tag>.root]
 //
-// Train / test split: candidates with EVEN event numbers train, ODD event
-// numbers test. Splitting by event (not by candidate) keeps all candidates
-// of one event on the same side, so event-level features cannot leak
-// between the two samples. "event" only needs to be an integer that is
+// Train / test split: by event number (see --nfolds), default EVEN events
+// train and ODD events test. Splitting by event (not by candidate) keeps all
+// candidates of one event on the same side, so event-level features cannot
+// leak between the two samples. "event" only needs to be an integer that is
 // unique per event within a file.
 //
 // "mass" is only a spectator: it is NOT a training variable.
@@ -122,7 +144,8 @@ struct Source {
 };
 
 bool loadSource(const std::string& path, const std::vector<std::string>& vars,
-                bool needXs, Source& src) {
+                bool needXs, const std::string& trainSel,
+                const std::string& testSel, Source& src) {
     src.file = TFile::Open(path.c_str(), "READ");
     if (!src.file || src.file->IsZombie()) {
         std::cerr << "Could not open " << path << "\n";
@@ -150,8 +173,34 @@ bool loadSource(const std::string& path, const std::vector<std::string>& vars,
     src.hasIsSignal = cand->GetBranch("isSignal") != nullptr;
 
     gROOT->cd();   // copies go to memory, not into the (read-only) input file
-    src.train = cand->CopyTree("(event%2)==0");
-    src.test  = cand->CopyTree("(event%2)==1");
+    src.train = cand->CopyTree(trainSel.c_str());
+    src.test  = cand->CopyTree(testSel.c_str());
+    return true;
+}
+
+// Standard TMVA options for the comparison methods (as in the TMVA
+// classification example)
+bool bookExtra(TMVA::Factory& factory, TMVA::DataLoader* loader,
+               const std::string& name, const std::string& bdtCommon) {
+    if (name == "Fisher")
+        factory.BookMethod(loader, TMVA::Types::kFisher, "Fisher",
+                           "H:!V:VarTransform=None");
+    else if (name == "LD")
+        factory.BookMethod(loader, TMVA::Types::kLD, "LD",
+                           "H:!V:VarTransform=None");
+    else if (name == "Likelihood")
+        factory.BookMethod(loader, TMVA::Types::kLikelihood, "Likelihood",
+            "H:!V:TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:"
+            "NSmoothBkg[0]=20:NSmooth=1:NAvEvtPerBin=50");
+    else if (name == "MLP")
+        factory.BookMethod(loader, TMVA::Types::kMLP, "MLP",
+            "H:!V:NeuronType=tanh:VarTransform=N:NCycles=300:"
+            "HiddenLayers=N+5:TestRate=5:!UseRegulator");
+    else if (name == "BDTG")
+        factory.BookMethod(loader, TMVA::Types::kBDT, "BDTG",
+                           (bdtCommon + ":BoostType=Grad:Shrinkage=0.1").c_str());
+    else
+        return false;
     return true;
 }
 
@@ -165,7 +214,8 @@ int main(int argc, char* argv[]) {
              "prune-method", "prune-strength", "bdt-options", "norm-mode",
              "train-weights", "presel", "cut", "sig-cut", "bkg-cut",
              "signal-file", "background-file", "vars", "drop", "drop-group",
-             "dataset", "out", "tag"}))
+             "dataset", "out", "tag", "nfolds", "fold", "holdout",
+             "bkg-subsample", "also"}))
         return 1;
 
     const std::string inputName =
@@ -182,6 +232,22 @@ int main(int argc, char* argv[]) {
                      "and '.', and must not start with '.'\n";
         return 1;
     }
+
+    Split split;
+    if (!getSplit(argc, argv, split))
+        return 1;
+    const double bkgSub = getNumber(argc, argv, "bkg-subsample", 1.0);
+    if (bkgSub <= 0.0 || bkgSub > 1.0) {
+        std::cerr << "--bkg-subsample must be in (0, 1]\n";
+        return 1;
+    }
+    const std::string bkgSubCut =
+        bkgSub < 1.0 ? "(event%1000)<" +
+                           std::to_string(static_cast<int>(
+                               std::lround(bkgSub * 1000.0)))
+                     : "";
+    const std::vector<std::string> alsoMethods =
+        splitCommas(getOption(argc, argv, "also", ""));
 
     const std::string signalFile = getOption(argc, argv, "signal-file", "");
     const std::string backgroundFile =
@@ -269,10 +335,12 @@ int main(int argc, char* argv[]) {
     const std::string bkgPath = twoFiles ? backgroundFile : inputName;
 
     Source sigSrc, bkgSrc;
-    if (!loadSource(sigPath, vars, needXs, sigSrc))
+    const std::string trainSel = trainSelection(split);
+    const std::string testSel  = testSelection(split);
+    if (!loadSource(sigPath, vars, needXs, trainSel, testSel, sigSrc))
         return 1;
     if (twoFiles) {
-        if (!loadSource(bkgPath, vars, needXs, bkgSrc))
+        if (!loadSource(bkgPath, vars, needXs, trainSel, testSel, bkgSrc))
             return 1;
     } else {
         bkgSrc = sigSrc;
@@ -285,7 +353,8 @@ int main(int argc, char* argv[]) {
     const std::string sigSel =
         andCuts({"isSignal>0.5", presel, sigExtra});
     const std::string bkgSel =
-        andCuts({bkgSrc.hasIsSignal ? "isSignal<0.5" : "", presel, bkgExtra});
+        andCuts({bkgSrc.hasIsSignal ? "isSignal<0.5" : "", presel, bkgExtra,
+                 bkgSubCut});
 
     const Long64_t nSigTrain = sigSrc.train->GetEntries(sigSel.c_str());
     const Long64_t nSigTest  = sigSrc.test->GetEntries(sigSel.c_str());
@@ -315,6 +384,12 @@ int main(int argc, char* argv[]) {
             << "\nbackground source: " << bkgPath
             << "\nsignal selection:     " << sigSel
             << "\nbackground selection: " << bkgSel
+            << "\nsplit:             test = " << testSel
+            << ", train = " << trainSel
+            << "\nbackground subsample: " << bkgSub
+            << "\nextra methods:     "
+            << (alsoMethods.empty() ? std::string("none")
+                                    : getOption(argc, argv, "also", ""))
             << "\nweights:           " << weightExpr
             << "\nnorm mode:         " << normMode
             << "\nmethod title:      " << method
@@ -375,6 +450,17 @@ int main(int argc, char* argv[]) {
     // BDTG is also TMVA's kBDT type; only the boost options differ.
     factory.BookMethod(loader, TMVA::Types::kBDT, method.c_str(), opts.c_str());
 
+    for (const std::string& m : alsoMethods)
+        if (!bookExtra(factory, loader, m, "!H:!V:NTrees=" +
+                           std::to_string(nTrees) + ":MaxDepth=" +
+                           std::to_string(depth) + ":MinNodeSize=" +
+                           num(minNode) + "%:nCuts=" +
+                           std::to_string(nCuts))) {
+            std::cerr << "Unknown method in --also: " << m
+                      << " (Fisher, LD, Likelihood, MLP, BDTG)\n";
+            return 1;
+        }
+
     factory.TrainAllMethods();
     factory.TestAllMethods();
     factory.EvaluateAllMethods();
@@ -390,6 +476,7 @@ int main(int argc, char* argv[]) {
               << "Signal:   " << sigPath << "  (" << sigSel << ")\n"
               << "Background: " << bkgPath << "  (" << bkgSel << ")\n"
               << "Method:   " << method << "\n"
+              << "Split:    test " << testSel << "\n"
               << "Options:  " << opts << "\n"
               << "Training weights: " << weightExpr
               << ", norm mode " << normMode << "\n"

@@ -45,6 +45,7 @@ clean:
 #   make tmva                       the same without smearing (LEVELS=0)
 #   make importance TAG=smear0      permutation importance of a trained BDT
 #   make ablation   TAG=smear0      retrain without each feature group
+#   make report                     figures and tables for the report -> report/
 #   make reapply                    rerun only applyTMVA (keeps the trained BDTs)
 #   make migrate-output             move older results (ds_*/dataset* folders,
 #                                   weight/, TMVA files in data/, plots/, logs/)
@@ -126,6 +127,10 @@ migrate-output:
 	@for f in logs/*_train.log logs/*_apply.log; do if [ -f "$$f" ]; then echo "moving $$f"; mv "$$f" $(OUT)/logs/; fi; done
 	@rmdir weight 2>/dev/null || true
 
+# Figures and tables for the report from the result CSVs -> report/
+report:
+	python3 scripts/make_report.py
+
 # Redo only the apply step (new cut scan / summary) without retraining
 reapply:
 	rm -f $(RESULTS)
@@ -140,4 +145,4 @@ clean-study:
 help:
 	@sed -n '/^# Analysis pipeline/,/^# -----/p' Makefile
 
-.PHONY: all clean study tmva importance ablation reapply clean-study migrate-output generate help
+.PHONY: all clean study tmva importance ablation report reapply clean-study migrate-output generate help

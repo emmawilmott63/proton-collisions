@@ -108,9 +108,12 @@ All are command-line options of `trainTMVA` (defaults in brackets); the exact st
 
 | Option | Default | Effect |
 |---|---|---|
-| train / test split | even / odd `event` | split by event, so event-level features cannot leak; fixed in the code |
+| train / test split | by `event`, default even / odd | split by event, so event-level features cannot leak; K-fold with `--nfolds`, `--fold` |
 | `--norm-mode` | EqualNumEvents | training sees equal total weight for signal and background; test yields are unaffected |
 | `--train-weights` | flat | `weight` only; `xs` multiplies by `xsWeight` (physical pThat mixture, noisier) |
+| `--nfolds`, `--fold`, `--holdout` | 2, 1, 0 | test = `event % K == I`; `--holdout=1` sets aside `event % 7 == 6` (see `docs/STUDY_PLAN.md`) |
+| `--bkg-subsample` | 1 | fraction of background events used, for faster scans |
+| `--also` | none | also train Fisher, LD, Likelihood, MLP, BDTG with fixed standard options, for method comparison |
 | `--presel`, `--sig-cut`, `--bkg-cut` | none | row selections (section 5) |
 | `--signal-file`, `--background-file` | none | two-file mode (section 6) |
 | `--vars`, `--drop`, `--drop-group` | 27 features | choose the input variables; must match in `applyTMVA` |

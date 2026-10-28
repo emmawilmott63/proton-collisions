@@ -8,8 +8,10 @@ background. Optionally smears the K and π momenta to study detector effects.
 
 ```
 macros/      all C++ sources and ROOT macros (plotD0.C)
-scripts/     run_generation.sh, run_smear_study.sh, run_ablation.sh
-docs/        TMVA_REFERENCE.md: features, importance, all TMVA parameters, STAR preparation
+scripts/     run_generation.sh, run_smear_study.sh, run_ablation.sh, run_cv.sh, run_scan.sh, make_report.py
+docs/        TMVA_REFERENCE.md (features, importance, parameters, STAR preparation),
+             STUDY_PLAN.md (the studies for the report and how to run them)
+report/      figures/ and tables/ made by make_report.py  (created)
 data/        generated particle files and candidate files (created)
 plots/       other plots, e.g. from mass and sanity       (created)
 logs/        generation and candidate-building logs       (created)
@@ -95,8 +97,8 @@ Outputs: `TMVA-output/plots/tmva_BDT_inc_5_100_{response,significance,bkgmass}.p
 | Program | Options |
 |---|---|
 | `buildtree` | `--smear-pt --smear-eta --smear-phi`, `--min-daughter-pt --max-eta --mass-min --mass-max`, `--bkg-keep`, `--tag`, `--out`, `--seed` |
-| `trainTMVA` | BDT: `--method --boost-type --ntrees --depth --min-node --ncuts --ada-beta --shrinkage --bagging --bag-fraction --separation --prune-method --bdt-options`. Rows: `--presel --sig-cut --bkg-cut --signal-file --background-file`. Other: `--vars --drop --drop-group --train-weights --norm-mode --dataset --tag` (all described in `docs/TMVA_REFERENCE.md`) |
-| `applyTMVA` | `--events=test\|train\|all --lumi-pb --sig-window --window-nsigma --min-bkg-rows --cut --presel --dataset --tag` (`--cut` is the BDT cut; `--presel` must match training) |
+| `trainTMVA` | BDT: `--method --boost-type --ntrees --depth --min-node --ncuts --ada-beta --shrinkage --bagging --bag-fraction --separation --prune-method --bdt-options`. Rows: `--presel --sig-cut --bkg-cut --signal-file --background-file --bkg-subsample`. Split: `--nfolds --fold --holdout`. Comparison: `--also=Fisher,LD,Likelihood,MLP,BDTG`. Other: `--vars --drop --drop-group --train-weights --norm-mode --dataset --tag` (see `docs/TMVA_REFERENCE.md`) |
+| `applyTMVA` | `--events=test\|train\|holdout\|all --nfolds --fold --holdout --lumi-pb --sig-window --window-nsigma --min-bkg-rows --cut --presel --dataset --tag` (`--cut` is the BDT cut; `--presel` and the split options must match training) |
 
 Output names are tagged from the input file name (`d0_inc_5_100.root` →
 `_inc_5_100`); `--tag=name` overrides that.
@@ -156,6 +158,26 @@ The signal window is set automatically from the signal mass distribution
 
 Overtraining check: `./applyTMVA <candidates> --dataset=ds_X --events=train --tag=X_train`
 and compare its `auc` with the test row.
+
+## 7. Studies for the report
+
+The plan, mapped to the report sections, is in `docs/STUDY_PLAN.md`. The workflow in short:
+
+```
+./scripts/run_cv.sh cv_baseline                       # 5-fold cross-validation (mean +- std)
+./scripts/run_scan.sh depth "2 3 4 5 6 8"             # one-parameter scan, each point cross-validated
+FOLDS=3 TRAIN_OPTS="--bkg-subsample=0.2" ./scripts/run_scan.sh ntrees "100 200 400 800"   # faster first pass
+TRAIN_OPTS="--also=Fisher,LD,Likelihood,MLP,BDTG" ./scripts/run_cv.sh cv_methods         # method comparison
+make report                                           # report/figures/*.png|pdf, report/tables/*.tex|md
+```
+
+Tuning runs set aside the events with `event % 7 == 6` (the holdout). After choosing a configuration,
+evaluate it once on those events: train with `--holdout=1`, then
+`./applyTMVA <candidates> --dataset=<name> --holdout=1 --events=holdout --tag=final_holdout`.
+Tag names decide how `make_report.py` groups results (`<name>_f<k>` = fold, `scan_<param>_<value>_f<k>` = scan
+point, `smear<x>`, `ablation_...`); the conventions are listed at the top of the script.
+Old `tmva_summary.csv` files have fewer columns: `applyTMVA` renames them to `tmva_summary.csv.old` and
+starts a new file; run `make reapply` to regenerate rows for finished studies.
 
 ## Known limitations
 

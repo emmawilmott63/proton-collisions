@@ -34,7 +34,8 @@
 // Options (defaults in brackets):
 //   --dataset=NAME   trained dataset directory               [dataset]
 //   --method=NAME    trained method                          [BDT]
-//   --events=test|train   which half of the events            [test]
+//   --events=test|train   test fold or training folds            [test]
+//   --nfolds / --fold / --holdout   MUST match trainTMVA
 //   --max-bkg=N      keep at most ~N background rows (all signal rows are
 //                    kept; kept background rows are re-weighted)   [200000]
 //   --repeats=N      shuffles per variable (gives the error)  [3]
@@ -98,7 +99,8 @@ int main(int argc, char* argv[]) {
 
     if (!checkOptions(argc, argv,
             {"dataset", "method", "events", "max-bkg", "repeats", "seed",
-             "presel", "vars", "drop", "drop-group", "tag", "out"}))
+             "presel", "vars", "drop", "drop-group", "tag", "out", "nfolds",
+             "fold", "holdout"}))
         return 1;
 
     const std::string inputName =
@@ -121,8 +123,11 @@ int main(int argc, char* argv[]) {
         std::cerr << "--events must be test or train\n";
         return 1;
     }
+    Split split;
+    if (!getSplit(argc, argv, split))
+        return 1;
     const std::string parity =
-        (events == "test") ? "(event%2)==1" : "(event%2)==0";
+        (events == "test") ? testSelection(split) : trainSelection(split);
 
     const std::vector<std::string> vars = getTMVAVars(argc, argv);
     const size_t nVars = vars.size();
@@ -187,7 +192,8 @@ int main(int argc, char* argv[]) {
     const Long64_t nEntries = tree->GetEntries();
     for (Long64_t i = 0; i < nEntries; ++i) {
         tree->GetEntry(i);
-        if (((b_event % 2) != 0) != (events == "test"))
+        if (events == "test" ? !isTestEvent(split, b_event)
+                             : !isTrainEvent(split, b_event))
             continue;
         const bool sig = (b_isSignal == 1);
         if (!sig && uni(rng) > keepProb)
