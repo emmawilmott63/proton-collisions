@@ -11,6 +11,9 @@
 #   ./scripts/run_ablation.sh data/candidates_inc_5_100.root
 #
 # Groups (see tmvaCommon.h): daughters, pair, jet, isolation, event
+# Uses the same event split as the cross-validation runs: the holdout events
+# (event%7==6) are excluded, so design decisions made from the ablation never
+# touch them. HOLDOUT=0 turns that off.
 # Extra options for every training come from the environment:
 #   TRAIN_OPTS="--depth=5 --min-node=0.5"  APPLY_OPTS="--lumi-pb=10"
 #   FEATURE_GROUPS="jet isolation"   only these groups
@@ -19,6 +22,7 @@
 # <base>_no_<group>. Compare the auc and signif_best columns.
 
 CAND=${1:-data/candidates_inc_5_100.root}
+HOLDOUT=${HOLDOUT:-1}
 FEATURE_GROUPS=${FEATURE_GROUPS:-"daughters pair jet isolation event"}
 
 for EXE in ./trainTMVA ./applyTMVA; do
@@ -41,10 +45,10 @@ run_one() {
     TAG=$1
     shift
     echo "=== $TAG ==="
-    ./trainTMVA "$CAND" --dataset="ds_${TAG}" --tag="$TAG" "$@" $TRAIN_OPTS \
+    ./trainTMVA "$CAND" --dataset="ds_${TAG}" --tag="$TAG" --holdout="$HOLDOUT" "$@" $TRAIN_OPTS \
         > "TMVA-output/logs/${TAG}_train.log" 2>&1 \
         || { echo "trainTMVA failed, see TMVA-output/logs/${TAG}_train.log"; return 1; }
-    ./applyTMVA "$CAND" --dataset="ds_${TAG}" --tag="$TAG" "$@" $APPLY_OPTS \
+    ./applyTMVA "$CAND" --dataset="ds_${TAG}" --tag="$TAG" --holdout="$HOLDOUT" "$@" $APPLY_OPTS \
         > "TMVA-output/logs/${TAG}_apply.log" 2>&1 \
         || { echo "applyTMVA failed, see TMVA-output/logs/${TAG}_apply.log"; return 1; }
     grep -E "ROC integral|Best cut" "TMVA-output/logs/${TAG}_apply.log"
