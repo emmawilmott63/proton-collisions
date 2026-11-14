@@ -3,3 +3,4 @@ plots/
 logs/
 TMVA-output/
 .venv/
+report/
