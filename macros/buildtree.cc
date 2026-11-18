@@ -16,7 +16,13 @@
 #include <vector>
 
 // buildtree: turn the particle tree into a CANDIDATE tree for TMVA.
-// One row per opposite-sign K pi pair that passes the preselection.
+// One row per K pi pair that passes the preselection. Both opposite-sign and
+// same-sign pairs are written (see --pairs), with the flag sameSign.
+//
+// Pairs are formed ONLY between a K and a pi of the same event: the loops
+// below run over the particles of one event record at a time, so a pair of
+// particles from different events can never be built. (Mixed-event pairs,
+// as a background model, would be a separate construction.)
 //
 // Usage: ./buildtree [inputFile] [--option=value ...]
 //   inputFile        default data/d0_inclusive.root
@@ -36,10 +42,17 @@
 //   --smear-phi=X         absolute phi smearing (rad)        [0]
 //   --bkg-keep=X          fraction of background rows kept   [1.0]
 //                         (kept rows get weight 1/X; signal weight is 1)
+//   --pairs=all|os|ss     which pairs to write: opposite-sign (os),
+//                         same-sign (ss) or both (all)        [all]
 //   --seed=N              random seed                        [12345]
 //
 // Branches written:
-//   label / bookkeeping : event, isSignal, weight, xsWeight
+//   label / bookkeeping : event, isSignal, sameSign, weight, xsWeight
+//                         sameSign = 1 if K and pi have the same charge
+//                                    (K+pi+ or K-pi-), 0 if opposite.
+//                                    A D0 -> K pi decay is always opposite
+//                                    sign, so same-sign rows are never
+//                                    signal (isSignal = 0).
 //                         weight   = 1 (signal) or 1/bkg-keep (background)
 //                         xsWeight = sigmaGen / nGenerated of the generator
 //                                    run the event came from [mb per event],
@@ -55,7 +68,7 @@
 //
 //   jet association     : sameJet    1 if K and pi are constituents of the
 //                                    same jet, else 0
-//                         jetPt, jetEta, jetMass, jetNConst
+//                         jetPt, jetEta, jetMass
 //                                    properties of the REFERENCE jet: the
 //                                    shared jet if sameJet, otherwise the
 //                                    jet nearest the pair direction
@@ -63,7 +76,7 @@
 //                         dRJet      distance from the pair direction to
 //                                    the reference-jet axis
 //                         (no jet in the event: jetPt = jetEta = jetMass =
-//                          jetNConst = zJet = 0, dRJet = 9, sameJet = 0)
+//                          zJet = 0, dRJet = 9, sameJet = 0)
 //
 //   isolation           : isoRel02, isoRel03, isoRel, isoRel06
 //                                    charged pT in a cone of R = 0.2, 0.3,
@@ -79,7 +92,8 @@
 //                                    from the UNSMEARED particles
 //
 // Every feature branch is written as float (including the counts and the
-// sameJet flag) so downstream code can read them all the same way.
+// sameJet flag) so downstream code can read them all the same way. The
+// bookkeeping branches event, isSignal and sameSign are integers.
 
 namespace {
 
@@ -174,7 +188,8 @@ int main(int argc, char* argv[]) {
     if (!checkOptions(argc, argv,
             {"out", "tag", "min-daughter-pt", "max-daughter-pt",
              "min-pair-pt", "max-pair-pt", "max-eta", "mass-min", "mass-max",
-             "smear-pt", "smear-eta", "smear-phi", "bkg-keep", "seed"}))
+             "smear-pt", "smear-eta", "smear-phi", "bkg-keep", "seed",
+             "pairs"}))
         return 1;
 
     const std::string inputName =
@@ -198,6 +213,12 @@ int main(int argc, char* argv[]) {
     const double smearPt  = getNumber(argc, argv, "smear-pt", 0.0);
     const double smearEta = getNumber(argc, argv, "smear-eta", 0.0);
     const double smearPhi = getNumber(argc, argv, "smear-phi", 0.0);
+
+    const std::string pairs = getOption(argc, argv, "pairs", "all");
+    if (pairs != "all" && pairs != "os" && pairs != "ss") {
+        std::cerr << "--pairs must be all, os or ss\n";
+        return 1;
+    }
 
     const double bkgKeep = getNumber(argc, argv, "bkg-keep", 1.0);
     const int    seed    = static_cast<int>(getNumber(argc, argv, "seed", 12345));
@@ -306,7 +327,7 @@ int main(int argc, char* argv[]) {
     TFile output(outName.c_str(), "RECREATE");
     TTree out("Candidates", "K pi candidates");
 
-    int   b_event = 0, b_isSignal = 0;
+    int   b_event = 0, b_isSignal = 0, b_sameSign = 0;
     float b_weight = 1, b_mass = 0;
     double b_xsWeight = 1.0;
 
@@ -319,7 +340,7 @@ int main(int argc, char* argv[]) {
 
     // jets
     float b_sameJet = 0;
-    float b_jetPt = 0, b_jetEta = 0, b_jetMass = 0, b_jetNConst = 0;
+    float b_jetPt = 0, b_jetEta = 0, b_jetMass = 0;
     float b_zJet = 0, b_dRJet = 0;
 
     // isolation
@@ -331,6 +352,7 @@ int main(int argc, char* argv[]) {
 
     out.Branch("event", &b_event);
     out.Branch("isSignal", &b_isSignal);
+    out.Branch("sameSign", &b_sameSign);
     out.Branch("weight", &b_weight);
     out.Branch("xsWeight", &b_xsWeight);
     out.Branch("mass", &b_mass);
@@ -355,7 +377,6 @@ int main(int argc, char* argv[]) {
     out.Branch("jetPt", &b_jetPt);
     out.Branch("jetEta", &b_jetEta);
     out.Branch("jetMass", &b_jetMass);
-    out.Branch("jetNConst", &b_jetNConst);
     out.Branch("zJet", &b_zJet);
     out.Branch("dRJet", &b_dRJet);
 
@@ -373,6 +394,7 @@ int main(int argc, char* argv[]) {
     fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR);
 
     long long nSignal = 0;
+    long long nOppSignRows = 0, nSameSignRows = 0;
     long long nBackground = 0;
     long long nEvents = 0;
     long long nNoWeight = 0;
@@ -421,13 +443,9 @@ int main(int argc, char* argv[]) {
         // jetOf[k] = index into `jets` of the jet containing particle k,
         // or -1 if it is in no jet above jetPtMin
         std::vector<int> jetOf(n, -1);
-        std::vector<double> jetNConstOf(jets.size(), 0.0);
-        for (size_t jj = 0; jj < jets.size(); ++jj) {
-            const std::vector<fastjet::PseudoJet> cons = jets[jj].constituents();
-            jetNConstOf[jj] = static_cast<double>(cons.size());
-            for (const auto& c : cons)
+        for (size_t jj = 0; jj < jets.size(); ++jj)
+            for (const auto& c : jets[jj].constituents())
                 jetOf[c.user_index()] = static_cast<int>(jj);
-        }
 
         // Transverse momentum and direction of every particle
         // (unsmeared; used for the isolation sums and event shapes)
@@ -502,8 +520,13 @@ int main(int argc, char* argv[]) {
                 if (std::abs(pid->at(j)) != 211)
                     continue;
 
-                // opposite-sign pairs only
-                if (charge->at(i) * charge->at(j) >= 0)
+                // Same-sign or opposite-sign? Both are built unless
+                // --pairs restricts it. (K and pi are always charged.)
+                const int chargeProduct = charge->at(i) * charge->at(j);
+                if (chargeProduct == 0)
+                    continue;
+                const bool sameSign = chargeProduct > 0;
+                if ((sameSign && pairs == "os") || (!sameSign && pairs == "ss"))
                     continue;
 
                 const Track& P = trk[j];
@@ -531,9 +554,11 @@ int main(int argc, char* argv[]) {
                 if (pairPtSel < minPairPt || pairPtSel > maxPairPt)
                     continue;
 
-                // Truth label: both from the same D0 -> K pi decay
+                // Truth label: both from the same D0 -> K pi decay, which
+                // is always an opposite-sign pair (so never a same-sign
+                // one). i and j are particles of the same event record.
                 const bool isSignal =
-                    d0Parent->at(i) >= 0 &&
+                    !sameSign && d0Parent->at(i) >= 0 &&
                     d0Parent->at(i) == d0Parent->at(j);
 
                 // Optional background prescale (weights restore the
@@ -618,12 +643,11 @@ int main(int argc, char* argv[]) {
                 }
 
                 double jetPt = 0.0, jetEta = 0.0, jetMass = 0.0;
-                double jetNConst = 0.0, zJet = 0.0;
+                double zJet = 0.0;
                 if (refJet >= 0) {
                     jetPt     = jets[refJet].pt();
                     jetEta    = jets[refJet].eta();
                     jetMass   = jets[refJet].m();
-                    jetNConst = jetNConstOf[refJet];
                     if (jetPt > 0)
                         zJet = pairPt / jetPt;
                 }
@@ -657,6 +681,7 @@ int main(int argc, char* argv[]) {
                 // Fill the row
                 b_event        = static_cast<int>(iEvent);
                 b_isSignal     = isSignal ? 1 : 0;
+                b_sameSign     = sameSign ? 1 : 0;
                 b_weight       = static_cast<float>(weight);
                 b_xsWeight     = xsW;
                 b_mass         = static_cast<float>(mass);
@@ -681,7 +706,6 @@ int main(int argc, char* argv[]) {
                 b_jetPt        = static_cast<float>(jetPt);
                 b_jetEta       = static_cast<float>(jetEta);
                 b_jetMass      = static_cast<float>(jetMass);
-                b_jetNConst    = static_cast<float>(jetNConst);
                 b_zJet         = static_cast<float>(zJet);
                 b_dRJet        = static_cast<float>(dRJet);
 
@@ -697,6 +721,8 @@ int main(int argc, char* argv[]) {
                 b_thrustT      = static_cast<float>(thrustT);
 
                 out.Fill();
+                if (sameSign) ++nSameSignRows;
+                else          ++nOppSignRows;
 
                 if (isSignal) {
                     ++nSignal;
@@ -734,6 +760,8 @@ int main(int argc, char* argv[]) {
               << ", " << massMin << " < mass < " << massMax << "\n"
               << "Smearing:           pT " << smearPt
               << ", eta " << smearEta << ", phi " << smearPhi << "\n"
+              << "Pairs written:      " << pairs << "  (opposite-sign rows "
+              << nOppSignRows << ", same-sign rows " << nSameSignRows << ")\n"
               << "Signal rows:        " << nSignal << "\n"
               << "Background rows:    " << nBackground
               << "  (kept fraction " << bkgKeep << ")\n";

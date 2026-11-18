@@ -19,8 +19,10 @@
 // background (all other opposite-sign K pi pairs), each normalised to
 // unit area, and prints a simple separation score.
 //
-// Usage: ./features [candidateFile] [--tag=name]
+// Usage: ./features [candidateFile] [--tag=name] [--pairs=os|ss|all]
 //   candidateFile  default data/candidates_inclusive.root
+//   --pairs        which K pi pairs to plot: opposite-sign (default),
+//                  same-sign, or both. Signal is always opposite-sign.
 
 namespace {
 
@@ -34,6 +36,15 @@ struct Feature {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+
+    if (!checkOptions(argc, argv, {"tag", "pairs"}))
+        return 1;
+
+    const std::string pairs = getOption(argc, argv, "pairs", "os");
+    if (pairs != "os" && pairs != "ss" && pairs != "all") {
+        std::cerr << "--pairs must be os, ss or all\n";
+        return 1;
+    }
 
     const std::string inputName =
         getInputFile(argc, argv, "data/candidates_inclusive.root");
@@ -63,7 +74,6 @@ int main(int argc, char* argv[]) {
         {"jetPt",        "Jet p_{T} [GeV/c]",             50,  0.0, 30.0},
         {"zJet",         "Pair p_{T} / jet p_{T}",        50,  0.0,  1.5},
         {"dRJet",        "#DeltaR (pair, jet axis)",      50,  0.0,  5.0},
-        {"jetNConst",    "Jet constituents",              50,  0.0, 60.0},
         {"jetMass",      "Jet mass [GeV/c^{2}]",          50,  0.0,  8.0},
         {"jetEta",       "Jet #eta",                      40, -2.0,  2.0},
 
@@ -101,6 +111,16 @@ int main(int argc, char* argv[]) {
     float weight   = 1.0f;
     tree->SetBranchAddress("isSignal", &isSignal);
     tree->SetBranchAddress("weight", &weight);
+
+    // old candidate files have no sameSign branch (opposite-sign only)
+    int sameSign = 0;
+    const bool hasSameSign = tree->GetBranch("sameSign") != nullptr;
+    if (hasSameSign)
+        tree->SetBranchAddress("sameSign", &sameSign);
+    else if (pairs == "ss") {
+        std::cerr << "No sameSign branch in " << inputName << "\n";
+        return 1;
+    }
 
     std::vector<float> values(features.size(), 0.0f);
 
@@ -145,6 +165,10 @@ int main(int argc, char* argv[]) {
     for (Long64_t i = 0; i < nEntries; ++i) {
 
         tree->GetEntry(i);
+
+        if (hasSameSign && ((pairs == "os" && sameSign == 1) ||
+                            (pairs == "ss" && sameSign == 0)))
+            continue;
 
         if (isSignal == 1) ++nSig;
         else               ++nBkg;
@@ -232,7 +256,11 @@ int main(int argc, char* argv[]) {
     canvas.cd(features.size() + 1);
     TLegend leg(0.1, 0.4, 0.9, 0.6);
     leg.AddEntry(hSig[0], "Signal: truth D^{0}#rightarrowK#pi", "l");
-    leg.AddEntry(hBkg[0], "Background: other OS K#pi pairs", "l");
+    const char* bkgLabel =
+        pairs == "os" ? "Background: other OS K#pi pairs"
+      : pairs == "ss" ? "Background: same-sign K#pi pairs"
+                      : "Background: all other K#pi pairs (OS + SS)";
+    leg.AddEntry(hBkg[0], bkgLabel, "l");
     leg.Draw();
 
     canvas.SaveAs(("plots/features" + tag + ".png").c_str());
